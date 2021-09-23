@@ -11,7 +11,7 @@ const BITBUCKET = {
 };
 
 test("run-lambda", async () => {
-  await runLambdaWithSNS("Testing", {
+  const fakeEvent = {
     detail: {
       pipeline: "My Awesome Pipeline",
       "execution-id": "2000d763-23f1-4903-85d5-4f5a71aafe35",
@@ -24,7 +24,15 @@ test("run-lambda", async () => {
         "external-execution-url": `https://blahblah/foo/bar?Commit=${BITBUCKET.commitid}&FullRepositoryId=${BITBUCKET.repo}`,
       },
     },
-  });
+  };
+
+  await runLambdaWithSNS("Testing", fakeEvent);
+  /*
+  await runLambdaWithSNS(
+    "Testing",
+    JSON.parse(FAILED_DEPLOYMENT_EVENT.Records[0].Sns.Message)
+  );
+  */
   expect(1).toBe(1);
 });
 
