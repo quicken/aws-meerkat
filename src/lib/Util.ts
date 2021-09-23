@@ -25,7 +25,10 @@ export class Util {
           incoming += chunk;
         });
         res.on("end", () => {
-          if (res.statusCode === 200) {
+          if (
+            res.statusCode &&
+            (res.statusCode >= 200 || res.statusCode < 300)
+          ) {
             let body;
             try {
               body = JSON.parse(incoming);
