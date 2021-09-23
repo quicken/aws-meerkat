@@ -1,16 +1,6 @@
-import * as https from "https";
 import { URL } from "url";
-
-import {
-  CodeBuildClient,
-  BatchGetBuildsCommand,
-} from "@aws-sdk/client-codebuild";
-
-import {
-  CodeDeployClient,
-  BatchGetDeploymentTargetsCommand,
-  BatchGetDeploymentTargetsCommandInput,
-} from "@aws-sdk/client-codedeploy";
+import { BitBucket } from "./BitBucket";
+import { CommitType, LogEntryType } from "../types";
 
 import {
   DynamoDBClient,
@@ -20,20 +10,6 @@ import {
 } from "@aws-sdk/client-dynamodb";
 
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
-
-import {
-  STSClient,
-  AssumeRoleCommand,
-  AssumeRoleCommandInput,
-} from "@aws-sdk/client-sts";
-
-interface FailureType {
-  id: string;
-  type: string;
-  name: string;
-  link?: string;
-  message?: string;
-}
 
 /**
  * A class which bundles method required to provide notifications which provide context to the
@@ -64,15 +40,10 @@ export class PipeLog {
    * summary: The commit message.
    * link: A link to the website showing details for this commit.
    */
-  commit = {
-    id: "",
-    author: "",
-    summary: "",
-    link: "",
-  };
+  commit: CommitType;
 
   /** Array of failures, a failure has different properties depending on the type. */
-  failed: FailureType[];
+  failed: LogEntryType[];
 
   /** Set to true if a notification has been sent out for any failure within this pipeline. */
   isNotified: boolean;
@@ -110,6 +81,12 @@ export class PipeLog {
     return this.failed.length > 0;
   }
 
+  /** Returns the very first failure that occured in this pipeline process. */
+  get failure(): LogEntryType | null {
+    if (this.failed.length === 0) return null;
+    return this.failed[0];
+  }
+
   /**
    * Loads the outcome from previous pipeline actions from storage.
    * @param {*} executionId The pipelines executrion id.
@@ -129,6 +106,7 @@ export class PipeLog {
     };
     const command = new GetItemCommand(params);
     const { Item } = await dynamoDB.send(command);
+
     /* If a key does not exist dynamo db returns an empty object. */
     if (Item) {
       const data = unmarshall(Item);
@@ -162,49 +140,60 @@ export class PipeLog {
   };
 
   /**
-   * Parses the incoming message and extracts information required to
-   * provide details about the cause of the pipeline failure.
+   * Handles the incoming pipe notification message and extracts information required to
+   * enrich the availabe information about the cause of the pipeline failure.
    * @param {'*'} message The SNS message which was received from the pipeline.
    * @returns
    */
-  applyMessage = async (message: any): Promise<any> => {
+  handleEvent = async (message: any): Promise<void> => {
     this.name = message.detail.pipeline;
 
-    /* Process a "checkout" action. (Retrieve commit information) */
+    switch (message.detail.type.provider) {
+      case "CodeStarSourceConnection":
+        await this.handleCodestarEvent(message);
+        break;
+      case "CodeBuild":
+        this.handleCodeBuildEvent(message);
+        break;
+      case "CodeDeploy":
+        this.handleCodeDeployEvent(message);
+        break;
+    }
+  };
+
+  /**
+   * Processes incoming commit actions. (Codestar).
+   *
+   * This function enriches the incoming SNS message with data retrieved from the
+   * repository hosting service. For example the name of the commit author as well
+   * as the commit message.
+   *
+   * @param message
+   */
+  private handleCodestarEvent = async (message: any) => {
     if (
       message.detail.stage === "Source" &&
-      message.detail.state === "SUCCEEDED" &&
-      message.detail.type.provider === "CodeStarSourceConnection"
+      message.detail.state === "SUCCEEDED"
     ) {
+      /* Fetch usefull commit details from the repository hosting service (bitbucket). */
       const url = new URL(
         message.detail["execution-result"]["external-execution-url"]
       );
-      const repo = url.searchParams.get("FullRepositoryId");
-      const commitId = url.searchParams.get("Commit");
+      const repo = url.searchParams.get("FullRepositoryId") || "";
+      const commitId = url.searchParams.get("Commit") || "";
       try {
-        let commit = await this.fetchCommit(
+        const bitbucket = new BitBucket(
+          repo,
           this.BITBUCKET.username,
-          this.BITBUCKET.password,
-          repo || "",
-          commitId || ""
+          this.BITBUCKET.password
         );
-        commit = commit.body;
-        this.commit.id = commitId ? commitId : "";
-        this.commit.author = commit.author.raw;
-        this.commit.summary = commit.summary.raw;
-        this.commit.link = commit.links.self.href;
+        this.commit = await bitbucket.fetchCommit(commitId);
       } catch (e) {
         console.log(e);
       }
-
-      return this.failed;
     }
 
-    /* Process a Check-out Failed Action */
-    if (
-      message.detail.state === "FAILED" &&
-      message.detail.type.provider === "CodeStarSourceConnection"
-    ) {
+    if (message.detail.state === "FAILED") {
       const checkout = {
         id: "",
         type: "checkout",
@@ -214,24 +203,35 @@ export class PipeLog {
         ] as string,
       };
       this.failed.push(checkout);
-      return this.failed;
     }
+  };
 
-    /* Process a Build Failed Action */
+  /**
+   * Process message originating from CodeBuild.
+   * @param message
+   * @returns
+   */
+  private handleCodeBuildEvent = async (message: any) => {
     if (
       message.detail.state === "FAILED" &&
       message.detail.type.provider === "CodeBuild"
     ) {
-      const build = {
+      const build: LogEntryType = {
         id: message.detail["execution-result"]["external-execution-id"],
         type: "build",
         name: message.detail.action,
         link: message.detail["execution-result"]["external-execution-url"],
       };
       this.failed.push(build);
-      return this.failed;
     }
+  };
 
+  /**
+   * Process message originating from CodeDeploy.
+   * @param message
+   * @returns
+   */
+  private handleCodeDeployEvent = async (message: any) => {
     /* Process a Deployment Failed Action */
     if (
       message.detail.state === "FAILED" &&
@@ -253,250 +253,15 @@ export class PipeLog {
         ? message.detail["execution-result"]["external-execution-url"]
         : "";
 
-      const deploy = {
+      const deploy: LogEntryType = {
         id: deployId,
         type: "deploy",
         name: message.detail.action,
         summary: summary,
         link: link,
       };
+
       this.failed.push(deploy);
-      return this.failed;
     }
-
-    return this.failed;
-  };
-
-  /**
-   * Get details for the specified commit from the bit bucket api.
-   * https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Bworkspace%7D/%7Brepo_slug%7D/commit/%7Bcommit%7D
-   *
-   * @param {*} username Bitbucket username.
-   * @param {*} password Bitbucket password. (This should be an App Password.)
-   * @param {*} repo The repository id in the format "{workspace}/{repository}".
-   * @param {*} commitId The id of the commit for which information should be retrieved.
-   * @returns A promise which resolves to a object containing the commit information. See the bitbucket api
-   * documentation for details.
-   */
-  fetchCommit = (
-    username: string,
-    password: string,
-    repo: string,
-    commitId: string
-  ): Promise<any> => {
-    const AUTHORIZATION = Buffer.from(username + ":" + password).toString(
-      "base64"
-    );
-    const options = {
-      hostname: "api.bitbucket.org",
-      port: 443,
-      path: `/2.0/repositories/${repo}/commit/${commitId}`,
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Basic " + AUTHORIZATION,
-      },
-    };
-
-    return this.callEndpoint(options, "");
-  };
-
-  /**
-   * Get details for the specified commit from the bit bucket api.
-   * https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Bworkspace%7D/%7Brepo_slug%7D/commit/%7Bcommit%7D
-   *
-   * @param {*} username Bitbucket username.
-   * @param {*} password Bitbucket password. (This should be an App Password.)
-   * @param {*} repo The repository id in the format "{workspace}/{repository}".
-   * @param {*} commitId The id of the commit for which information should be retrieved.
-   * @returns A promise which resolves to a object containing the commit information. See the bitbucket api
-   * documentation for details.
-   */
-  postToDiscord = async (
-    path: string,
-    title: string,
-    description: string,
-    fields: string,
-    footer: string
-  ): Promise<any> => {
-    const content = JSON.stringify({
-      username: "AWS Notification",
-      avatar_url:
-        "https://s3.ap-southeast-2.amazonaws.com/fs.tst.axcelerate.com/ax-devops/discord_bug.png?fgf",
-      content: "",
-      embeds: [
-        {
-          title: title,
-          color: 10038562,
-          description: description,
-          fields: fields,
-          footer: {
-            text: footer,
-          },
-        },
-      ],
-    });
-
-    const options = {
-      hostname: "discord.com",
-      port: 443,
-      path: path,
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Content-Length": content.length,
-      },
-    };
-
-    return this.callEndpoint(options, content);
-  };
-
-  /**
-   * Calls a HTTPS endpoint without requring any special imports.
-   *
-   * @param {*} options A https options object.
-   * @param {*} content The content to be passed in the request.
-   * @returns A promise which returns the body and statuscode of the response.
-   */
-  callEndpoint = (options: any, content: string): Promise<any> => {
-    return new Promise((resolve, reject) => {
-      let incoming = "";
-      const req = https.request(options, (res) => {
-        res.on("data", (chunk) => {
-          incoming += chunk;
-        });
-        res.on("end", () => {
-          if (res.statusCode === 200) {
-            let body = incoming;
-            try {
-              body = JSON.parse(incoming);
-            } catch (e) {
-              body = incoming;
-            }
-
-            resolve({
-              statuscode: 200,
-              body: body,
-            });
-          }
-
-          reject({
-            statuscode: res.statusCode,
-            body: incoming,
-          });
-        });
-      });
-
-      req.on("error", (error) => {
-        reject(error);
-      });
-
-      req.write(content);
-      req.end();
-    });
-  };
-
-  /**
-   * Assume a role in another account the returned structure can the be used to
-   * initialise another AWS SDK object. The object will then use the credentials
-   * created by this method for all calls.
-   *
-   * For example:
-   * const credentials = await PipeLog.fetchCredentials(sts);
-   * const dynamodb = new AWS.DynamoDB({credentials:credentials});
-   *
-   * All calls intiated with dynamodb will not use the credentials from the
-   * assumed role.
-   *
-   * @param {*} sts The aws STS object from the aws-sdk.
-   * @returns Credentials which can be passed to the credentials property when intialising
-   * aws sdk objects.
-   */
-  fetchCredentials = async (sts: STSClient, roleArn: string): Promise<any> => {
-    const param: AssumeRoleCommandInput = {
-      RoleArn: roleArn,
-      RoleSessionName: "mySessionName",
-    };
-
-    const command = new AssumeRoleCommand(param);
-
-    const data = await sts.send(command);
-
-    return {
-      accessKeyId: data.Credentials?.AccessKeyId,
-      secretAccessKey: data.Credentials?.SecretAccessKey,
-      sessionToken: data.Credentials?.SessionToken,
-    };
-  };
-
-  /**
-   * Attempt to retrieve the cause of a deployment failure.
-   *
-   * @param {*} deploymentId The id of the deployment.
-   * @param {*} codeDeploy From the AWS-SDK the codedeploy object used to make
-   * calls to the api. Note: The object should have been initialised with the credentials
-   * of a assumed role in which the code deployment has been provisioned.
-   * @returns
-   */
-  fetchCodeDeploy = async (
-    deploymentId: string,
-    codeDeploy: CodeDeployClient
-  ) => {
-    const param: BatchGetDeploymentTargetsCommandInput = {
-      deploymentId: deploymentId,
-    };
-
-    const command = new BatchGetDeploymentTargetsCommand(param);
-    const targets = await codeDeploy.send(command);
-
-    if (!targets.deploymentTargets) return;
-
-    return targets.deploymentTargets.map((target) => {
-      const out = {
-        instanceid: target.instanceTarget?.targetId,
-        diagnostics: {},
-      };
-
-      if (target.instanceTarget?.lifecycleEvents) {
-        for (
-          let j = 0;
-          j <= target.instanceTarget.lifecycleEvents.length;
-          j++
-        ) {
-          const lifeEvent = target.instanceTarget?.lifecycleEvents[j];
-          if (lifeEvent.status === "Failed") {
-            out.diagnostics = lifeEvent.diagnostics || "";
-            break;
-          }
-        }
-      }
-
-      return out;
-    });
-  };
-
-  /**
-   * Attempt to retrieve the link to the build log.
-   *
-   * @param {*} buildId The id of the build.
-   * @param {*} codeDeploy From the AWS-SDK the codedeploy object used to make
-   * calls to the api. Note: The object should have been initialised with the credentials
-   * of a assumed role in which the code deployment has been provisioned.
-   * @returns
-   */
-  fetchCodeBuild = async (
-    buildId: string,
-    codeBuild: CodeBuildClient
-  ): Promise<string> => {
-    const params = {
-      ids: [buildId],
-    };
-    const command = new BatchGetBuildsCommand(params);
-
-    const buildBatchResult = await codeBuild.send(command);
-
-    if (!buildBatchResult.builds) return "";
-    const build = buildBatchResult.builds[0];
-    return build.logs?.deepLink || "";
   };
 }

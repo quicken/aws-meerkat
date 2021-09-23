@@ -8,13 +8,14 @@
   "scripts": {
     "test": "jest",
     "lint": "eslint src/ --ext .js,.jsx,.ts,.tsx",
-    "build": "esbuild ./src/main.ts --bundle --external:aws-sdk --platform=node --target=node14 --outfile=./build/index.js",
-    "start": "tsc -p tsconfig.json && node -r dotenv/config ./build/main.js",
+    "build": "./package.sh",
+    "start": "tsc -p tsconfig.json && node -r dotenv/config ./build/index.js",
     "clean": "rm -rf build build",
     "ts-node": "ts-node"
   },
   "devDependencies": {
     "@aws-sdk/types": "^3.32.0",
+    "@types/aws-lambda": "^8.10.83",
     "@types/jest": "^27.0.2",
     "@types/node": "^16.9.6",
     "@typescript-eslint/eslint-plugin": "^4.31.2",
