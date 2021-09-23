@@ -61,6 +61,7 @@ export class Discord {
 
         if (deployLog.id !== "") {
           for (let info of deployLog.deploy.targets) {
+            if (!info.diagnostics) continue;
             let logTail =
               "```bash\n " +
               info.diagnostics?.logTail.slice(
@@ -77,6 +78,7 @@ export class Discord {
         break;
 
       default:
+        message.title = `:hot_face: ${author} broke the build.`;
         message.description = "Pipeline Failed.";
     }
 
@@ -90,7 +92,7 @@ export class Discord {
    * @param avatar
    * @returns
    */
-  postToDiscord = async (
+  postMessage = async (
     message: DiscordMessageType,
     path: string,
     avatar: string

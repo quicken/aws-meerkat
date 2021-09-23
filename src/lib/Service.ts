@@ -31,14 +31,14 @@ export class Service {
         break;
 
       case "deploy":
-        const stsClient = new STSClient({ region: "ap-southeast-2" });
+        const stsClient = new STSClient({ region: AWS_REGION });
         const credentials = await Util.fetchCredentials(
           stsClient,
           CODE_DEPLOY_ARN
         );
 
         const codeDeploy = new CodeDeployClient({
-          region: "ap-southeast-2",
+          region: AWS_REGION,
           credentials: credentials,
         });
 
