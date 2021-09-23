@@ -19,17 +19,6 @@ The username used to connect to the bitbucket API.
 
 The password used to authenticate with the bitbucket API.
 
-#### DISCORD_WEBHOOK
-
-The discord webook to which notifications are posted.
-
-#### DISCORD_AVATAR
-
-A url to an image that will be used as the discord avatar. The image that is shown next to
-message thread. The image must conform to the dimensions required by discord.
-
-A 128px x 128px png file with alpha transparency is known to work.
-
 #### CODE_DEPLOY_ARN
 
 The role that is assumed when retrieving failure information from the code deploy service. This allows
@@ -40,6 +29,21 @@ The specified deploy role must have the following permissions:
 
 - codedeploy:BatchGetDeploymentTargets
 - codedeploy:ListDeploymentTargets
+
+#### DISCORD_AVATAR
+
+A url to an image that will be used as the discord avatar. The image that is shown next to
+message thread. The image must conform to the dimensions required by discord.
+
+A 128px x 128px png file with alpha transparency is known to work.
+
+#### DISCORD_WEBHOOK
+
+The discord webook to which notifications are posted.
+
+#### REGION
+
+The aws region that will be used when calling AWS services.
 
 ## Development Environment
 
@@ -56,6 +60,15 @@ https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html
 
 ### Environment variables for running Unit-Test
 
+#### TEST_BITBUCKET_AUTHOR
+
+For unit testing only. The full username that commited the TEST_BITBUCKET_COMMIT. This variables is used when asserting fetching
+commit information.
+
+#### TEST_BITBUCKET_COMMIT
+
+For unit testing only. The commit id which is used by unit tests.
+
 #### TEST_BITBUCKET_REPO
 
 For unit testing only. The bitbucket repository id in the format "{workspace}/{repository}" that will be used
@@ -69,19 +82,10 @@ The repository id would be:
 
 "myuser/myrepo.git"
 
-#### TEST_BITBUCKET_COMMIT
+#### TEST_CODE_BUILD_ID
 
-For unit testing only. The commit id which is used by unit tests.
-
-#### TEST_BITBUCKET_AUTHOR
-
-For unit testing only. The full username that commited the TEST_BITBUCKET_COMMIT. This variables is used when asserting fetching
-commit information.
+For unit testing only. A code build deployment id from a failed build.
 
 #### TEST_CODE_DEPLOY_ID
 
 For unit testing only. A deployment ID where deployment to at least once ec2 instance failed.
-
-#### TEST_CODE_BUILD_ID
-
-For unit testing only. A code build deployment id from a failed build.

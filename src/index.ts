@@ -4,7 +4,7 @@ import { PipeLog } from "./lib/PipeLog";
 import { Service } from "./lib/Service";
 import { Discord } from "./lib/Discord";
 
-const AWS_REGION = process.env.AWS_REGION || "";
+const REGION = process.env.REGION || "";
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || "";
 const DISCORD_AVATAR = process.env.DISCORD_AVATAR || "";
 const BITBUCKET = {
@@ -27,7 +27,7 @@ export const handler: SNSHandler = async (
 
   const executionId = pipeEvent.detail["execution-id"];
 
-  const dynamo = new DynamoDBClient({ region: AWS_REGION });
+  const dynamo = new DynamoDBClient({ region: REGION });
   const pipelog = new PipeLog(BITBUCKET.username, BITBUCKET.password);
 
   await pipelog.load(executionId, dynamo);

@@ -4,16 +4,16 @@ import { STSClient } from "@aws-sdk/client-sts";
 import { CodeDeployClient } from "@aws-sdk/client-codedeploy";
 import { CodeDeploy } from "./CodeDeploy";
 
-const AWS_REGION = process.env.AWS_REGION || "";
+const REGION = process.env.REGION || "";
 const CODE_DEPLOY_ARN = process.env.CODE_DEPLOY_ARN || "";
 const TEST_CODE_DEPLOY_ID = process.env.TEST_CODE_DEPLOY_ID || "";
 
 test("fetch-deployment", async () => {
-  const stsClient = new STSClient({ region: AWS_REGION });
+  const stsClient = new STSClient({ region: REGION });
   const credentials = await Util.fetchCredentials(stsClient, CODE_DEPLOY_ARN);
 
   const cdClient = new CodeDeployClient({
-    region: AWS_REGION,
+    region: REGION,
     credentials: credentials,
   });
 
