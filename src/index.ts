@@ -18,7 +18,9 @@ export const handler: SNSHandler = async (
 ) => {
   let pipeEvent;
   try {
-    /* https://docs.aws.amazon.com/codepipeline/latest/userguide/detect-state-changes-cloudwatch-events.html */
+    /*
+    Received messages from SNS are in "Processed event" format see this link:
+    https://docs.aws.amazon.com/codepipeline/latest/userguide/detect-state-changes-cloudwatch-events.html */
     pipeEvent = JSON.parse(event.Records[0].Sns.Message);
   } catch (err: any) {
     console.log(err.stack);
@@ -33,8 +35,14 @@ export const handler: SNSHandler = async (
   await pipelog.load(executionId, dynamo);
   await pipelog.handleEvent(pipeEvent);
 
-  let failure = await Service.getFirstFailure(pipelog);
-  if (failure && !pipelog.isNotified) {
+  const failure = await Service.getFirstFailure(pipelog);
+
+  if (
+    failure &&
+    !pipelog.isNotified &&
+    pipeEvent.detail["detailType"] ===
+      "CodePipeline Stage Execution State Change"
+  ) {
     console.log("Sending Message");
 
     const discord = new Discord();

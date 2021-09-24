@@ -24,7 +24,7 @@ export class CodeDeploy {
   public static deployDetails = async (
     deploymentId: string,
     codeDeploy: CodeDeployClient
-  ) => {
+  ): Promise<(InstanceDiagnosticType | undefined)[]> => {
     /* Find EC2 instances for this deployment*/
     const listDeploymentTargetsInput: ListDeploymentTargetsInput = {
       deploymentId: deploymentId,
@@ -48,7 +48,7 @@ export class CodeDeploy {
 
     if (!targets.deploymentTargets) return [];
 
-    return targets.deploymentTargets.map((target) => {
+    const deployDetails = targets.deploymentTargets.map((target) => {
       if (target.deploymentTargetType === "InstanceTarget") {
         const out: InstanceDiagnosticType = {
           instanceid: target.instanceTarget?.targetId || "",
@@ -63,9 +63,10 @@ export class CodeDeploy {
             }
           }
         }
-
         return out;
       }
     });
+
+    return deployDetails;
   };
 }

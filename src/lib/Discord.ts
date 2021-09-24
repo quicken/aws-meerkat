@@ -18,8 +18,8 @@ export class Discord {
     pipeLineName: string,
     commit: CommitType,
     logEntry: LogEntryType
-  ) {
-    let message: DiscordMessageType = {
+  ): DiscordMessageType {
+    const message: DiscordMessageType = {
       title: `:see_no_evil: ${pipeLineName}`,
       description: "",
       fields: [],
@@ -37,42 +37,46 @@ export class Discord {
 
     switch (logEntry.type) {
       case "build":
-        const buildLog = logEntry as BuildLogEntryType;
+        {
+          const buildLog = logEntry as BuildLogEntryType;
 
-        message.title = `:hot_face: ${author} broke the build.`;
-        message.description = `Pipeline: ${pipeLineName}.`;
-        message.fields.push({
-          name: `View Build Log:`,
-          value: `${buildLog.build.logUrl}`,
-        });
+          message.title = `:hot_face: ${author} broke the build.`;
+          message.description = `Pipeline: ${pipeLineName}.`;
+          message.fields.push({
+            name: `View Build Log:`,
+            value: `${buildLog.build.logUrl}`,
+          });
+        }
         break;
 
       case "deploy":
-        const deployLog = logEntry as DeployLogEntryType;
+        {
+          const deployLog = logEntry as DeployLogEntryType;
 
-        message.title = `:see_no_evil: ${pipeLineName}, deployment failed. `;
-        message.description = `${author}`;
-        if (deployLog.summary) {
-          message.fields.push({
-            name: "Summary",
-            value: `\`\`\`${deployLog.summary}\`\`\``,
-          });
-        }
-
-        if (deployLog.id !== "") {
-          for (let info of deployLog.deploy.targets) {
-            if (!info.diagnostics) continue;
-            let logTail =
-              "```bash\n " +
-              info.diagnostics?.logTail.slice(
-                info.diagnostics.logTail.length - 500,
-                info.diagnostics.logTail.length
-              ) +
-              " ```";
+          message.title = `:see_no_evil: ${pipeLineName}, deployment failed. `;
+          message.description = `${author}`;
+          if (deployLog.summary) {
             message.fields.push({
-              name: `${info.diagnostics?.scriptName}`,
-              value: `Deployment failed to instance id:\n ${info.instanceid}  ${logTail}`,
+              name: "Summary",
+              value: `\`\`\`${deployLog.summary}\`\`\``,
             });
+          }
+
+          if (deployLog.id !== "") {
+            for (const info of deployLog.deploy.targets) {
+              if (!info.diagnostics) continue;
+              const logTail =
+                "```bash\n " +
+                info.diagnostics?.logTail.slice(
+                  info.diagnostics.logTail.length - 500,
+                  info.diagnostics.logTail.length
+                ) +
+                " ```";
+              message.fields.push({
+                name: `${info.diagnostics?.scriptName}`,
+                value: `Deployment failed to instance id:\n ${info.instanceid}  ${logTail}`,
+              });
+            }
           }
         }
         break;
@@ -83,6 +87,15 @@ export class Discord {
     }
 
     return message;
+  }
+
+  public simpleMessage(subject: string, message: string): DiscordMessageType {
+    return {
+      title: `:skull_crossbones: ${subject}`,
+      description: message,
+      fields: [],
+      footer: "",
+    };
   }
 
   /**

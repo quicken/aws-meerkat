@@ -93,4 +93,38 @@ export class Util {
       sessionToken: data.Credentials?.SessionToken,
     };
   };
+
+  /**
+   * Provides a mechanism to use the pipeline name and a naming convention for
+   * environment variables to control the ARN that should
+   * be used when calling the CODE Deploy SDK.
+   *
+   * The pattern is DEPLOY_ARN_{searchterm}
+   *
+   * If the variable DEPLOY_ARN is undefined or the search does not match a
+   * empty string is returned.
+   *
+   * If DEPLOY_ARN is defined it will be used when the search does not match.
+   *
+   * The sub string for the search is embedded into the environment variable name. For
+   * example to specify the ARN for any pipe line with the word production in the name
+   * create and environment variable named: DEPLOY_ARN_production. The match is case
+   * insenstive.
+   *
+   * @param name  The name of the code pipeline.
+   * @param env The process.env object or a similar object.
+   * @returns The ARN of the role that is assumed when calling the AWS Deploy SDK.
+   */
+  public static getDeployArnFromEnv = (name: string, env: any): string => {
+    const defaultArn = env.DEPLOY_ARN ? env.DEPLOY_ARN : "";
+    for (const key in env) {
+      if (key.startsWith("DEPLOY_ARN")) {
+        const searchTerm = key.split("_").slice(2).join("_").toLowerCase();
+        if (searchTerm && name.toLowerCase().includes(searchTerm)) {
+          return env[key];
+        }
+      }
+    }
+    return defaultArn;
+  };
 }

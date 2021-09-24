@@ -43,7 +43,7 @@ export class PipeLog {
   commit: CommitType;
 
   /** Array of failures, a failure has different properties depending on the type. */
-  failed: LogEntryType[];
+  private _failed: LogEntryType[];
 
   /** Set to true if a notification has been sent out for any failure within this pipeline. */
   isNotified: boolean;
@@ -66,7 +66,7 @@ export class PipeLog {
       link: "",
     };
 
-    this.failed = [];
+    this._failed = [];
 
     this.isNotified = false;
 
@@ -78,13 +78,13 @@ export class PipeLog {
 
   /** Determines if this pipeline execution is considered to have failed. */
   get isFailed(): boolean {
-    return this.failed.length > 0;
+    return this._failed.length > 0;
   }
 
   /** Returns the very first failure that occured in this pipeline process. */
-  get failure(): LogEntryType | null {
-    if (this.failed.length === 0) return null;
-    return this.failed[0];
+  get failed(): LogEntryType | null {
+    if (this._failed.length === 0) return null;
+    return this._failed[0];
   }
 
   /**
@@ -113,7 +113,7 @@ export class PipeLog {
       this.executionId = executionId;
       this.name = data.name;
       this.commit = data.commit;
-      this.failed = data.failed;
+      this._failed = data.failed;
       this.isNotified = data.isNotified;
     }
   };
@@ -131,7 +131,7 @@ export class PipeLog {
         executionId: this.executionId,
         naem: this.name,
         commit: this.commit,
-        failed: this.failed,
+        failed: this._failed,
         isNotified: this.isNotified,
       }),
     };
@@ -202,7 +202,7 @@ export class PipeLog {
           "external-execution-summary"
         ] as string,
       };
-      this.failed.push(checkout);
+      this._failed.push(checkout);
     }
   };
 
@@ -222,7 +222,7 @@ export class PipeLog {
         name: message.detail.action,
         link: message.detail["execution-result"]["external-execution-url"],
       };
-      this.failed.push(build);
+      this._failed.push(build);
     }
   };
 
@@ -261,7 +261,7 @@ export class PipeLog {
         link: link,
       };
 
-      this.failed.push(deploy);
+      this._failed.push(deploy);
     }
   };
 }

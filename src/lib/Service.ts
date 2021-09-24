@@ -2,57 +2,68 @@ import { PipeLog } from "./PipeLog";
 import { CodeBuildClient } from "@aws-sdk/client-codebuild";
 import { CodeBuild } from "./CodeBuild";
 import { STSClient } from "@aws-sdk/client-sts";
-import { CodeDeployClient } from "@aws-sdk/client-codedeploy";
+import {
+  CodeDeployClient,
+  CodeDeployClientConfig,
+} from "@aws-sdk/client-codedeploy";
 import { CodeDeploy } from "./CodeDeploy";
 import { Util } from "./Util";
 import { LogEntryType, BuildLogEntryType, DeployLogEntryType } from "../types";
 
-const CODE_DEPLOY_ARN = process.env.CODE_DEPLOY_ARN || "";
 const REGION = process.env.REGION || "";
 
 export class Service {
-  public static getFirstFailure = async (pipelog: PipeLog) => {
+  public static getFirstFailure = async (
+    pipelog: PipeLog
+  ): Promise<LogEntryType | null> => {
     if (!pipelog.failed) return null;
 
-    let failedLogEntry = { ...pipelog.failure } as LogEntryType;
+    let failedLogEntry = { ...pipelog.failed } as LogEntryType;
 
     switch (failedLogEntry.type) {
       case "build":
-        const codeBuild = new CodeBuildClient({ region: REGION });
-        const logUrl = await CodeBuild.fetchBuildLogUrl(
-          failedLogEntry.id,
-          codeBuild
-        );
+        {
+          const codeBuild = new CodeBuildClient({ region: REGION });
+          const logUrl = await CodeBuild.fetchBuildLogUrl(
+            failedLogEntry.id,
+            codeBuild
+          );
 
-        failedLogEntry = {
-          ...failedLogEntry,
-          ...{ build: { logUrl: logUrl } },
-        } as BuildLogEntryType;
+          failedLogEntry = {
+            ...failedLogEntry,
+            ...{ build: { logUrl: logUrl } },
+          } as BuildLogEntryType;
+        }
         break;
 
       case "deploy":
-        const stsClient = new STSClient({ region: REGION });
-        const credentials = await Util.fetchCredentials(
-          stsClient,
-          CODE_DEPLOY_ARN
-        );
+        {
+          const config: CodeDeployClientConfig = { region: REGION };
 
-        const codeDeploy = new CodeDeployClient({
-          region: REGION,
-          credentials: credentials,
-        });
+          const deployArn = Util.getDeployArnFromEnv(pipelog.name, process.env);
+          if (deployArn) {
+            const stsClient = new STSClient({ region: REGION });
+            const credentials = await Util.fetchCredentials(
+              stsClient,
+              deployArn
+            );
 
-        const deployTargets = await CodeDeploy.deployDetails(
-          failedLogEntry.id,
-          codeDeploy
-        );
+            config.credentials = credentials;
+          }
 
-        failedLogEntry = {
-          ...failedLogEntry,
-          ...{ deploy: { targets: deployTargets } },
-        } as DeployLogEntryType;
+          const codeDeploy = new CodeDeployClient(config);
+
+          const deployTargets = await CodeDeploy.deployDetails(
+            failedLogEntry.id,
+            codeDeploy
+          );
+
+          failedLogEntry = {
+            ...failedLogEntry,
+            ...{ deploy: { targets: deployTargets } },
+          } as DeployLogEntryType;
+        }
         break;
-      default:
     }
 
     return failedLogEntry;
