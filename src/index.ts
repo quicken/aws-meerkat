@@ -5,6 +5,7 @@ import { Service } from "./lib/Service";
 import { Discord } from "./lib/Discord";
 
 const REGION = process.env.REGION || "";
+const DB_TABLE = process.env.DB_TABLE || "devops-pipeline-monitor";
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || "";
 const DISCORD_AVATAR = process.env.DISCORD_AVATAR || "";
 const BITBUCKET = {
@@ -30,7 +31,7 @@ export const handler: SNSHandler = async (
   const executionId = pipeEvent.detail["execution-id"];
 
   const dynamo = new DynamoDBClient({ region: REGION });
-  const pipelog = new PipeLog(BITBUCKET.username, BITBUCKET.password);
+  const pipelog = new PipeLog(DB_TABLE, BITBUCKET.username, BITBUCKET.password);
 
   await pipelog.load(executionId, dynamo);
   await pipelog.handleEvent(pipeEvent);

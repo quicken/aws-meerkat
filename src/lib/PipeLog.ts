@@ -42,6 +42,9 @@ export class PipeLog {
    */
   commit: CommitType;
 
+  /* The name of the DB table that stores pipelog data.*/
+  private _dbTable: string;
+
   /** Array of failures, a failure has different properties depending on the type. */
   private _failed: LogEntryType[];
 
@@ -54,10 +57,12 @@ export class PipeLog {
     password: "",
   };
 
-  constructor(username: string, password: string) {
+  constructor(dbTable: string, username: string, password: string) {
     this.executionId = "";
 
     this.name = "";
+
+    this._dbTable = dbTable;
 
     this.commit = {
       id: "",
@@ -99,7 +104,7 @@ export class PipeLog {
     this.executionId = executionId;
 
     const params = {
-      TableName: "ax-devop-pipeline",
+      TableName: this._dbTable,
       Key: {
         executionId: { S: executionId },
       },
@@ -126,7 +131,7 @@ export class PipeLog {
    */
   save = async (dynamoDB: DynamoDBClient): Promise<PutItemCommandOutput> => {
     const params = {
-      TableName: "ax-devop-pipeline",
+      TableName: this._dbTable,
       Item: marshall({
         executionId: this.executionId,
         naem: this.name,

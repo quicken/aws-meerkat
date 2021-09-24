@@ -4,10 +4,10 @@ The code pipeline monitor collects and enriches pipeline notification events mak
 
 The lambda execution role required the following permissions in addition to the standard lambda execution permissions:
 
-- dynamodb:PutItem
-- dynamodb:GetItem
+- dynamodb:PutItem (To the table created for this lambda)
+- dynamodb:GetItem (To the table created for this lambda)
 - codebuild:BatchGetBuilds
-- sts:AssumeRole (The role assumed to interact with code deploy. See the CODE_DEPLOY_ARN in environment variables.)
+- sts:AssumeRole (If using cross account deployments, the role assumed to interact with code deploy. See the information for the DEPLOY_ARN environment variables.)
 
 ## Setup
 
@@ -32,11 +32,19 @@ The username used to connect to the bitbucket API.
 
 The password used to authenticate with the bitbucket API.
 
-#### DEPLOY_ARN
+#### DB_TABLE (optional)
+
+The name of the DynomDb table that is used to manage pipeline logs. Defaults to: "devops-pipeline-monitor".
+
+The table must have Partition key of type string named executionId.
+
+See the cloudformation template in the cloudformation folder for an example definition.
+
+#### DEPLOY_ARN (optional)
 
 The role that is assumed when retrieving failure information from the code deploy service. This allows
 retrieving information accross AWS accounts. The lambda execution role must be able to assume the specified
-role.
+role. Only required if doing cross account deployments.
 
 The specified deploy role must have the following permissions:
 

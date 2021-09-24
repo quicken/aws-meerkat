@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { PipeLog } from "./PipeLog";
 
+const DB_TABLE = process.env.DB_TABLE || "devops-pipeline-monitor";
 const BITBUCKET = {
   username: process.env.BITBUCKET_USERNAME || "",
   password: process.env.BITBUCKET_PASSWORD || "",
@@ -10,7 +11,7 @@ const BITBUCKET = {
 };
 
 test("action-commit-bitbucket", async () => {
-  const pipelog = new PipeLog(BITBUCKET.username, BITBUCKET.password);
+  const pipelog = new PipeLog(DB_TABLE, BITBUCKET.username, BITBUCKET.password);
   await pipelog.handleEvent(checkoutFromBitbucketEvent());
 
   expect(pipelog.commit.author).toBe(BITBUCKET.author);
