@@ -1,0 +1,22 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "Provisions the DynamoDB Table that is used by the aws-code-pipeline-monitor to aggregate the outcome of code pipeline executions."
+
+# devops-pipeline-monitor
+Parameters:
+  TableName:
+    Type: String
+    Description: "The name of the DynamoDb table that is used to track pipeline event."
+    Default: devops-pipeline-monitor
+
+Resources:
+  DBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: executionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: executionId
+          KeyType: HASH
+      TableName: !Ref TableName
