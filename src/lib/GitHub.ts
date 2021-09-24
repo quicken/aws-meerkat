@@ -1,43 +1,44 @@
 import { Util } from "./Util";
 import { CommitType } from "../types";
 
-export class BitBucket {
+export class GitHub {
   /** Username for calling the Bitbucket API.  */
   private _username: string;
 
-  /** Password for calling the Bitbucket API.  */
-  private _password: string;
+  /** Personal token from your github account.  */
+  private _token: string;
 
   /**
    *
-   * @param username    Username for calling the Bitbucket API.
-   * @param password    Password for calling the Bitbucket API.
+   * @param username    Username for calling the GitHug API.
+   * @param token    Personal token for calling the API.
    */
-  constructor(username: string, password: string) {
+  constructor(username: string, token: string) {
     this._username = username;
-    this._password = password;
+    this._token = token;
   }
 
   /**
    * Get details for the specified commit from the bit bucket api.
    * https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Bworkspace%7D/%7Brepo_slug%7D/commit/%7Bcommit%7D
-   *
-   * @param repo    The repository id in the format "{workspace}/{repository}"
+   * @param repo    The repository id.
    * @param {*} commitId The id of the commit for which information should be retrieved.
    * @returns A promise which resolves to a object containing the commit information. See the bitbucket api
    * documentation for details.
    */
   fetchCommit = async (repo: string, commitId: string): Promise<CommitType> => {
     const AUTHORIZATION = Buffer.from(
-      this._username + ":" + this._password
+      this._username + ":" + this._token
     ).toString("base64");
 
     const options = {
-      hostname: "api.bitbucket.org",
+      hostname: "api.github.com",
       port: 443,
-      path: `/2.0/repositories/${repo}/commit/${commitId}`,
+      path: `/repos/${repo}/git/commits/${commitId}`,
       method: "GET",
       headers: {
+        Accept: "application/vnd.github.v3+json",
+        "User-Agent": "aws-codepipeline",
         "Content-Type": "application/json",
         Authorization: "Basic " + AUTHORIZATION,
       },
@@ -47,9 +48,9 @@ export class BitBucket {
 
     return {
       id: commitId,
-      author: response.body.author.raw,
-      summary: response.body.summary.raw,
-      link: response.body.links.self.href,
+      author: `${response.body.author.name} <${response.body.author.email}>`,
+      summary: response.body.message,
+      link: response.body.html_url,
     };
   };
 }

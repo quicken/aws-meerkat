@@ -24,13 +24,17 @@ The SNS Topic to which the Lambda is subscribed must receive all of the followin
 
 ## Environment Variables
 
-#### BITBUCKET_USERNAME
+#### GIT_PASSWORD
 
-The username that is used to connect to the bitbucket API.
+The password that is used to connect to the git provider. For GitHub this is a Personal Access Token with permission to read commits.
 
-#### BITBUCKET_PASSWORD
+#### GIT_PROVIDER (optional)
 
-The password that is used to authenticate with the bitbucket API.
+The service hosting the repository. Valid values are "bitbucket" or "github". The default is: github
+
+#### GIT_USERNAME
+
+The username that is used to connect to the git provider.
 
 #### DB_TABLE (optional)
 
@@ -107,10 +111,6 @@ https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html
 
 #### TEST_BITBUCKET_AUTHOR
 
-For unit testing only. The full username of the person that committed the TEST_BITBUCKET_COMMIT. This variable is used when asserting commit tests.
-
-#### TEST_BITBUCKET_AUTHOR
-
 The raw author name that is expected to be returned by the Bitbucket API. The unit test asserts against this author.
 
 #### TEST_BITBUCKET_COMMIT
@@ -134,6 +134,22 @@ The repository id would be:
 
 For unit testing only. A code build deployment id from a failed build.
 
-#### TEST_CODE_DEPLOY_ID
+#### TEST_GITHUB_USERNAME
 
-For unit testing only. A deployment ID where deployment to at least once ec2 instance failed.
+The git hub username used to authenticate during unit testing.
+
+#### TEST_GITHUB_TOKEN
+
+The git hub token used to authenticate during unit testing.
+
+#### TEST_GITHUB_REPO
+
+The git hub repo used for unit test.
+
+#### TEST_GITHUB_AUTHOR
+
+The raw author name that is expected to be returned by the Git Hub API. The unit test asserts against this author.
+
+#### TEST_GITHUB_COMMIT
+
+The git hub commit used for unit testing.

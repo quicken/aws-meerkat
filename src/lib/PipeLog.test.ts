@@ -1,21 +1,37 @@
 import "dotenv/config";
 import { PipeLog } from "./PipeLog";
+import { BitBucket } from "./BitBucket";
+import { GitHub } from "./GitHub";
 
 const DB_TABLE = process.env.DB_TABLE || "devops-pipeline-monitor";
-const BITBUCKET = {
-  username: process.env.BITBUCKET_USERNAME || "",
-  password: process.env.BITBUCKET_PASSWORD || "",
-  repo: process.env.TEST_BITBUCKET_REPO || "",
-  commitid: process.env.TEST_BITBUCKET_COMMIT || "",
-  author: process.env.TEST_BITBUCKET_AUTHOR || "",
-};
+const GIT_USERNAME = process.env.GIT_USERNAME || "";
+const GIT_PASSWORD = process.env.GIT_PASSWORD || "";
+const TEST_GITHUB_USERNAME = process.env.TEST_GITHUB_USERNAME || "";
+const TEST_GITHUB_TOKEN = process.env.TEST_GITHUB_TOKEN || "";
+const TEST_GITHUB_AUTHOR = process.env.TEST_GITHUB_AUTHOR || "";
+const TEST_BITBUCKET_AUTHOR = process.env.TEST_BITBUCKET_AUTHOR || "";
+const TEST_BITBUCKET_COMMIT = process.env.TEST_BITBUCKET_COMMIT || "";
+const TEST_BITBUCKET_REPO = process.env.TEST_BITBUCKET_REPO || "";
 
 test("action-commit-bitbucket", async () => {
-  const pipelog = new PipeLog(DB_TABLE, BITBUCKET.username, BITBUCKET.password);
+  const bitBucket = new BitBucket(GIT_USERNAME, GIT_PASSWORD);
+
+  const pipelog = new PipeLog(DB_TABLE, bitBucket);
   await pipelog.handleEvent(checkoutFromBitbucketEvent());
 
-  expect(pipelog.commit.author).toBe(BITBUCKET.author);
+  expect(pipelog.commit.author).toBe(TEST_BITBUCKET_AUTHOR);
 });
+
+/* TODO: Capture code pipeline event from git hub.
+test("action-commit-github", async () => {
+  const gitHub = new GitHub(TEST_GITHUB_USERNAME, TEST_GITHUB_TOKEN);
+
+  const pipelog = new PipeLog(DB_TABLE, gitHub);
+  await pipelog.handleEvent(checkoutFromBitbucketEvent());
+
+  expect(pipelog.commit.author).toBe(TEST_GITHUB_AUTHOR);
+});
+ */
 
 const checkoutFromBitbucketEvent = () => ({
   detail: {
@@ -27,7 +43,7 @@ const checkoutFromBitbucketEvent = () => ({
       provider: "CodeStarSourceConnection",
     },
     "execution-result": {
-      "external-execution-url": `https://blahblah/foo/bar?Commit=${BITBUCKET.commitid}&FullRepositoryId=${BITBUCKET.repo}`,
+      "external-execution-url": `https://blahblah/foo/bar?Commit=${TEST_BITBUCKET_COMMIT}&FullRepositoryId=${TEST_BITBUCKET_REPO}`,
     },
   },
 });

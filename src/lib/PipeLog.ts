@@ -1,5 +1,6 @@
 import { URL } from "url";
 import { BitBucket } from "./BitBucket";
+import { GitHub } from "./GitHub";
 import { CommitType, LogEntryType } from "../types";
 
 import {
@@ -48,6 +49,9 @@ export class PipeLog {
   /** Array of failures, a failure has different properties depending on the type. */
   private _failed: LogEntryType[];
 
+  /* The name of the DB table that stores pipelog data.*/
+  private _codeProvider: BitBucket | GitHub;
+
   /** Set to true if a notification has been sent out for any failure within this pipeline. */
   isNotified: boolean;
 
@@ -57,12 +61,20 @@ export class PipeLog {
     password: "",
   };
 
-  constructor(dbTable: string, username: string, password: string) {
+  /** Github API credentials for retrieving, commit information.  */
+  GITHUB = {
+    username: "",
+    token: "",
+  };
+
+  constructor(dbTable: string, codeProvider: BitBucket | GitHub) {
     this.executionId = "";
 
     this.name = "";
 
     this._dbTable = dbTable;
+
+    this._codeProvider = codeProvider;
 
     this.commit = {
       id: "",
@@ -74,11 +86,6 @@ export class PipeLog {
     this._failed = [];
 
     this.isNotified = false;
-
-    this.BITBUCKET = {
-      username: username,
-      password: password,
-    };
   }
 
   /** Determines if this pipeline execution is considered to have failed. */
@@ -187,12 +194,7 @@ export class PipeLog {
       const repo = url.searchParams.get("FullRepositoryId") || "";
       const commitId = url.searchParams.get("Commit") || "";
       try {
-        const bitbucket = new BitBucket(
-          repo,
-          this.BITBUCKET.username,
-          this.BITBUCKET.password
-        );
-        this.commit = await bitbucket.fetchCommit(commitId);
+        this.commit = await this._codeProvider.fetchCommit(repo, commitId);
       } catch (e) {
         console.log(e);
       }

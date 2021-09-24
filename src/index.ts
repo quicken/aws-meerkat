@@ -3,15 +3,16 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { PipeLog } from "./lib/PipeLog";
 import { Service } from "./lib/Service";
 import { Discord } from "./lib/Discord";
+import { BitBucket } from "./lib/BitBucket";
+import { GitHub } from "./lib/GitHub";
 
 const REGION = process.env.REGION || "";
 const DB_TABLE = process.env.DB_TABLE || "devops-pipeline-monitor";
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || "";
 const DISCORD_AVATAR = process.env.DISCORD_AVATAR || "";
-const BITBUCKET = {
-  username: process.env.BITBUCKET_USERNAME || "",
-  password: process.env.BITBUCKET_PASSWORD || "",
-};
+const GIT_PROVIDER = process.env.GIT_PROVIDER || "";
+const GIT_USERNAME = process.env.GIT_USERNAME || "";
+const GIT_PASSWORD = process.env.GIT_PASSWORD || "";
 
 export const handler: SNSHandler = async (
   event: SNSEvent,
@@ -27,11 +28,17 @@ export const handler: SNSHandler = async (
     console.log(err.stack);
     return;
   }
+  let codeProvider;
+  if (GIT_PROVIDER.toLowerCase() === "bitbucket") {
+    codeProvider = new BitBucket(GIT_USERNAME, GIT_PASSWORD);
+  } else {
+    codeProvider = new GitHub(GIT_USERNAME, GIT_PASSWORD);
+  }
 
   const executionId = pipeEvent.detail["execution-id"];
 
   const dynamo = new DynamoDBClient({ region: REGION });
-  const pipelog = new PipeLog(DB_TABLE, BITBUCKET.username, BITBUCKET.password);
+  const pipelog = new PipeLog(DB_TABLE, codeProvider);
 
   await pipelog.load(executionId, dynamo);
   await pipelog.handleEvent(pipeEvent);
