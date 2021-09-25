@@ -222,11 +222,13 @@ Resources:
         - Key: costcenter
           Value: !Ref CostCenter
 
+  # List of event types: https://docs.aws.amazon.com/dtconsole/latest/userguide/concepts.html
   PipeLineNotification:
     Type: AWS::CodeStarNotifications::NotificationRule
     Properties:
       DetailType: FULL
       EventTypeIds:
+        - codepipeline-pipeline-pipeline-execution-succeeded
         - codepipeline-pipeline-pipeline-execution-failed
         - codepipeline-pipeline-action-execution-succeeded
         - codepipeline-pipeline-action-execution-failed

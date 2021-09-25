@@ -89,6 +89,29 @@ export class Discord {
     return message;
   }
 
+  public createPipeSuccessMessage(
+    pipeLineName: string,
+    commit: CommitType
+  ): DiscordMessageType {
+    const author = commit.author.length === 0 ? "" : commit.author;
+
+    const message: DiscordMessageType = {
+      title: `:rocket: ${pipeLineName} success.`,
+      description: `${author}`,
+      fields: [],
+      footer: "",
+    };
+
+    if (commit.id !== "") {
+      message.fields.push({
+        name: `Commit: ${commit.id}`,
+        value: `${commit.summary}`,
+      });
+    }
+
+    return message;
+  }
+
   public simpleMessage(subject: string, message: string): DiscordMessageType {
     return {
       title: `:skull_crossbones: ${subject}`,

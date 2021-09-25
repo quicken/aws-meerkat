@@ -43,29 +43,41 @@ export const handler: SNSHandler = async (
   await pipelog.load(executionId, dynamo);
   await pipelog.handleEvent(pipeEvent);
 
-  const failure = await Service.getFirstFailure(pipelog);
-
   if (
-    failure &&
-    !pipelog.isNotified &&
     pipeEvent.detail["detailType"] ===
-      "CodePipeline Stage Execution State Change"
+    "CodePipeline Pipeline Execution State Change"
   ) {
-    console.log("Sending Message");
-
     const discord = new Discord();
 
-    const discordMessage = discord.createPipeFailureMessage(
-      pipelog.name,
-      pipelog.commit,
-      failure
-    );
+    const failure = await Service.getFirstFailure(pipelog);
 
-    await discord.postMessage(discordMessage, DISCORD_WEBHOOK, DISCORD_AVATAR);
+    if (failure && !pipelog.isNotified) {
+      console.log("Sending Message");
 
-    pipelog.isNotified = true;
+      const failedMessage = discord.createPipeFailureMessage(
+        pipelog.name,
+        pipelog.commit,
+        failure
+      );
+
+      await discord.postMessage(failedMessage, DISCORD_WEBHOOK, DISCORD_AVATAR);
+
+      pipelog.isNotified = true;
+    } else if (pipeEvent.detail.state === "SUCCEEDED" && !pipelog.isNotified) {
+      const successMessage = discord.createPipeSuccessMessage(
+        pipelog.name,
+        pipelog.commit
+      );
+
+      await discord.postMessage(
+        successMessage,
+        DISCORD_WEBHOOK,
+        DISCORD_AVATAR
+      );
+
+      pipelog.isNotified = true;
+    }
   }
-
   await pipelog.save(dynamo);
 
   console.log("Processed SNS Message");

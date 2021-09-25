@@ -20,7 +20,8 @@ The SNS Topic to which the Lambda is subscribed must receive all of the followin
 
 #### Pipeline execution
 
-- failed (Messages are only sent on this event to avoid spamming users for a single pipeline failure. The event is NOT used to determine if the pipeline failed.)
+- success (Success messages are only sent on this event to avoid spamming users for a single pipeline success.)
+- failed (Failed messages are only sent on this event to avoid spamming users for a single pipeline failure. The event is NOT used to determine if the pipeline failed.)
 
 ## Environment Variables
 
