@@ -127,6 +127,14 @@ Resources:
             Resource:
               - "*"
 
+          - Sid: SNS
+            # Grant permission to publish pipeline notifications the SNS Topic.
+            Effect: Allow
+            Action:
+              - sns:Publish
+            Resource:
+              - !Ref SNSArn
+
       Roles:
         - !Ref CIServiceRole
 
@@ -226,14 +234,14 @@ Resources:
   PipeLineNotification:
     Type: AWS::CodeStarNotifications::NotificationRule
     Properties:
+      Name: "devops-example-pipeline-notification"
       DetailType: FULL
+      Resource: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeLine}"
       EventTypeIds:
         - codepipeline-pipeline-pipeline-execution-succeeded
         - codepipeline-pipeline-pipeline-execution-failed
         - codepipeline-pipeline-action-execution-succeeded
         - codepipeline-pipeline-action-execution-failed
-      Name: "devops-example-pipeline=notification"
-      Resource: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeLine}"
       Status: ENABLED
       Targets:
         - TargetType: SNS

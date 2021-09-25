@@ -101,6 +101,21 @@ Resources:
             Action:
               - SNS:Publish
             Resource: !Ref SnsTopic
+            Condition:
+              StringEquals:
+                AWS:SourceAccount: !Ref AWS::AccountId
+
+          - Sid: AWSCodeStarNotifications
+            Effect: Allow
+            Principal:
+              Service: codestar-notifications.amazonaws.com
+            Action:
+              - SNS:Publish
+            Resource: !Ref SnsTopic
+            Condition:
+              StringEquals:
+                AWS:SourceAccount: !Ref AWS::AccountId
+
       Topics:
         - !Ref SnsTopic
 
