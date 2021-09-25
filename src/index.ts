@@ -96,5 +96,5 @@ export const handler: SNSHandler = async (
   }
   await pipelog.save(dynamo);
 
-  co_BREAK_THE_BUILD_nsole.log("Processed SNS Message");
+  console.log("Processed SNS Message");
 };
