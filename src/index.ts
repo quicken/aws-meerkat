@@ -68,7 +68,13 @@ export const handler: SNSHandler = async (
         failure
       );
 
-      await discord.postMessage(failedMessage, DISCORD_WEBHOOK, DISCORD_AVATAR);
+      const DARK_RED = 10038562;
+      await discord.postMessage(
+        failedMessage,
+        DISCORD_WEBHOOK,
+        DISCORD_AVATAR,
+        DARK_RED
+      );
 
       pipelog.isNotified = true;
     } else if (pipeEvent.detail.state === "SUCCEEDED" && !pipelog.isNotified) {
@@ -77,10 +83,12 @@ export const handler: SNSHandler = async (
         pipelog.commit
       );
 
+      const GREEN = 3066993;
       await discord.postMessage(
         successMessage,
         DISCORD_WEBHOOK,
-        DISCORD_AVATAR
+        DISCORD_AVATAR,
+        GREEN
       );
 
       pipelog.isNotified = true;

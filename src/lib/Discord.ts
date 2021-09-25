@@ -126,13 +126,19 @@ export class Discord {
    * @param message
    * @param path
    * @param avatar
+   * @param color A discord color code. https://gist.github.com/thomasbnt/b6f455e2c7d743b796917fa3c205f812
    * @returns
    */
   postMessage = async (
     message: DiscordMessageType,
     path: string,
-    avatar: string
+    avatar: string,
+    color: number = 3447003 /* Blue */
   ): Promise<any> => {
+    /*
+    https://discord.com/developers/docs/resources/webhook#execute-webhook
+    https://discord.com/developers/docs/resources/channel#embed-object
+    */
     const content = JSON.stringify({
       username: "AWS Notification",
       avatar_url: avatar,
@@ -140,7 +146,7 @@ export class Discord {
       embeds: [
         {
           title: message.title,
-          color: 10038562,
+          color: color,
           description: message.description,
           fields: message.fields,
           footer: {
