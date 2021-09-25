@@ -133,6 +133,7 @@ export class Discord {
     message: DiscordMessageType,
     path: string,
     avatar: string,
+    username: string,
     color: number = 3447003 /* Blue */
   ): Promise<any> => {
     /*
@@ -140,7 +141,7 @@ export class Discord {
     https://discord.com/developers/docs/resources/channel#embed-object
     */
     const content = JSON.stringify({
-      username: "AWS Notification",
+      username: username,
       avatar_url: avatar,
       content: "",
       embeds: [

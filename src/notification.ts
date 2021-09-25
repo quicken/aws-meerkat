@@ -3,6 +3,7 @@ import { Discord } from "./lib/Discord";
 
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || "";
 const DISCORD_AVATAR = process.env.DISCORD_AVATAR || "";
+const DISCORD_USERNAME = process.env.DISCORD_USERNAME || "AWS Notification";
 
 export const simpleMessageHandler: SNSHandler = async (
   event: SNSEvent,
@@ -19,9 +20,13 @@ export const simpleMessageHandler: SNSHandler = async (
   }
 
   const discord = new Discord();
-  const discordMessage = discord.simpleMessage(snsSubject, snsMessage);
-
-  await discord.postMessage(discordMessage, DISCORD_WEBHOOK, DISCORD_AVATAR);
+  const simpleMessage = discord.simpleMessage(snsSubject, snsMessage);
+  await discord.postMessage(
+    simpleMessage,
+    DISCORD_WEBHOOK,
+    DISCORD_AVATAR,
+    DISCORD_USERNAME
+  );
 
   console.log("Sent message to discord");
 };

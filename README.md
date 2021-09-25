@@ -83,6 +83,10 @@ A public URL to an image that will be used as the discord avatar. The image is s
 
 A 128px x 128px png file with alpha transparency is known to work.
 
+#### DISCORD_USERNAME (optional)
+
+Override the username that is shown in discord.
+
 #### DISCORD_WEBHOOK
 
 The discord webhook to which notifications are posted.

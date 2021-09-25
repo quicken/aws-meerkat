@@ -9,6 +9,7 @@ import {
 
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || "";
 const DISCORD_AVATAR = process.env.DISCORD_AVATAR || "";
+const DISCORD_USERNAME = process.env.DISCORD_USERNAME || "AWS Notification";
 
 test("create-default-failed-message", async () => {
   const commit: CommitType = {
@@ -32,7 +33,7 @@ test("create-default-failed-message", async () => {
     logEntry
   );
 
-  // discord.postMessage(message,DISCORD_WEBHOOK,DISCORD_AVATAR);
+  // discord.postMessage(message,DISCORD_WEBHOOK,DISCORD_AVATAR,DISCORD_USERNAME);
   expect(message.description).toBe("Pipeline Failed.");
 });
 
@@ -61,7 +62,7 @@ test("create-build-failed-message", async () => {
     logEntry
   );
 
-  // discord.postMessage(message,DISCORD_WEBHOOK,DISCORD_AVATAR);
+  // discord.postMessage(message,DISCORD_WEBHOOK,DISCORD_AVATAR,DISCORD_USERNAME);
   expect(message.fields[0].name).toBe("Commit: 123456");
   expect(message.fields[1].name).toBe("View Build Log:");
 });
@@ -104,6 +105,6 @@ test("create-deploy-failed-message", async () => {
     logEntry
   );
 
-  // discord.postMessage(message, DISCORD_WEBHOOK, DISCORD_AVATAR);
+  // discord.postMessage(message,DISCORD_WEBHOOK,DISCORD_AVATAR,DISCORD_USERNAME);
   expect(message.fields.length).toBe(3);
 });

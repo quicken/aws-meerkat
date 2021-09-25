@@ -10,6 +10,7 @@ const REGION = process.env.REGION || "";
 const DB_TABLE = process.env.DB_TABLE || "devops-pipeline-monitor";
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || "";
 const DISCORD_AVATAR = process.env.DISCORD_AVATAR || "";
+const DISCORD_USERNAME = process.env.DISCORD_USERNAME || "AWS Notification";
 const GIT_PROVIDER = process.env.GIT_PROVIDER || "";
 const GIT_USERNAME = process.env.GIT_USERNAME || "";
 const GIT_PASSWORD = process.env.GIT_PASSWORD || "";
@@ -18,6 +19,8 @@ export const handler: SNSHandler = async (
   event: SNSEvent,
   context?: Context
 ) => {
+  const discord = new Discord();
+
   let pipeEvent;
   try {
     /*
@@ -25,7 +28,16 @@ export const handler: SNSHandler = async (
     https://docs.aws.amazon.com/codepipeline/latest/userguide/detect-state-changes-cloudwatch-events.html */
     pipeEvent = JSON.parse(event.Records[0].Sns.Message);
   } catch (err: any) {
-    console.log(err.stack);
+    const simpleMessage = discord.simpleMessage(
+      event.Records[0].Sns.Subject,
+      event.Records[0].Sns.Message
+    );
+    await discord.postMessage(
+      simpleMessage,
+      DISCORD_WEBHOOK,
+      DISCORD_AVATAR,
+      DISCORD_USERNAME
+    );
     return;
   }
 
@@ -55,8 +67,6 @@ export const handler: SNSHandler = async (
   if (!pipelog.name) pipelog.name = pipeEvent.detail.pipeline;
 
   if (pipeEvent.detailType === "CodePipeline Pipeline Execution State Change") {
-    const discord = new Discord();
-
     const failure = await Service.getFirstFailure(pipelog);
 
     if (failure && !pipelog.isNotified) {
@@ -73,6 +83,7 @@ export const handler: SNSHandler = async (
         failedMessage,
         DISCORD_WEBHOOK,
         DISCORD_AVATAR,
+        DISCORD_USERNAME,
         DARK_RED
       );
 
@@ -88,6 +99,7 @@ export const handler: SNSHandler = async (
         successMessage,
         DISCORD_WEBHOOK,
         DISCORD_AVATAR,
+        DISCORD_USERNAME,
         GREEN
       );
 
