@@ -128,12 +128,12 @@ Resources:
               - "*"
 
           - Sid: SNS
-            # Grant permission to publish pipeline notifications the SNS Topic.
+            # Grant permission to publish pipeline notifications to SNS Topics.
             Effect: Allow
             Action:
               - sns:Publish
             Resource:
-              - !Ref SNSArn
+              - "*"
 
       Roles:
         - !Ref CIServiceRole

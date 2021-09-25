@@ -94,17 +94,6 @@ Resources:
               StringEquals:
                 AWS:SourceOwner: !Ref AWS::AccountId
 
-          - Sid: AllowEventBridge
-            Effect: Allow
-            Principal:
-              Service: events.amazonaws.com
-            Action:
-              - SNS:Publish
-            Resource: !Ref SnsTopic
-            Condition:
-              StringEquals:
-                AWS:SourceAccount: !Ref AWS::AccountId
-
           - Sid: AWSCodeStarNotifications
             Effect: Allow
             Principal:
@@ -115,7 +104,6 @@ Resources:
             Condition:
               StringEquals:
                 AWS:SourceAccount: !Ref AWS::AccountId
-
       Topics:
         - !Ref SnsTopic
 
@@ -206,6 +194,14 @@ Resources:
       Tags:
         - Key: costcenter
           Value: !Ref CostCenter
+
+  PipeLineMonitorLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref PipeLineMonitorLambda
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref SnsTopic
 
   SnsSubscription:
     Type: AWS::SNS::Subscription
