@@ -141,7 +141,7 @@ export class PipeLog {
       TableName: this._dbTable,
       Item: marshall({
         executionId: this.executionId,
-        naem: this.name,
+        name: this.name,
         commit: this.commit,
         failed: this._failed,
         isNotified: this.isNotified,
@@ -157,7 +157,8 @@ export class PipeLog {
    * @param {'*'} message The SNS message which was received from the pipeline.
    * @returns
    */
-  handleEvent = async (message: any): Promise<void> => {
+  handlePipelineAction = async (message: any): Promise<void> => {
+    if (!message.detailType.startsWith("CodePipeline Action Execution")) return;
     this.name = message.detail.pipeline;
 
     switch (message.detail.type.provider) {

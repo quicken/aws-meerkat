@@ -36,6 +36,11 @@ test("run-lambda", async () => {
   expect(1).toBe(1);
 });
 
+test("pipeline-success-event", async () => {
+  await runLambdaWithSNS("Testing", pipelineSuccessEvent);
+  expect(1).toBe(1);
+});
+
 async function runLambdaWithSNS(subject: string, message: object) {
   const event = createSNSEvent(subject, JSON.stringify(message));
   const context = createContext();
@@ -94,3 +99,23 @@ function createContext(): Context {
     succeed: (messageOrObject) => {},
   };
 }
+
+const pipelineSuccessEvent = {
+  account: "111111111111",
+  detailType: "CodePipeline Pipeline Execution State Change",
+  region: "ap-southeast-2",
+  source: "aws.codepipeline",
+  time: "2021-09-25T07:59:53Z",
+  notificationRuleArn:
+    "arn:aws:codestar-notifications:ap-southeast-2:111111111111:notificationrule/b458395bbc1aa895fe86a3b3bf0aa7a71c9fffff",
+  detail: {
+    pipeline: "example-pipe-monitor-codepipeline",
+    "execution-id": "a6bf7e98-2fd2-4977-aed8-c4abd047a8c0",
+    state: "SUCCEEDED",
+    version: 1.0,
+  },
+  resources: [
+    "arn:aws:codepipeline:ap-southeast-2:111111111111:example-pipe-monitor-codepipeline",
+  ],
+  additionalAttributes: {},
+};

@@ -28,6 +28,14 @@ export const handler: SNSHandler = async (
     console.log(err.stack);
     return;
   }
+
+  if (
+    !pipeEvent.hasOwnProperty("detailType") ||
+    !pipeEvent.detailType.startsWith("CodePipeline")
+  ) {
+    return;
+  }
+
   let codeProvider;
   if (GIT_PROVIDER.toLowerCase() === "bitbucket") {
     codeProvider = new BitBucket(GIT_USERNAME, GIT_PASSWORD);
@@ -41,12 +49,12 @@ export const handler: SNSHandler = async (
   const pipelog = new PipeLog(DB_TABLE, codeProvider);
 
   await pipelog.load(executionId, dynamo);
-  await pipelog.handleEvent(pipeEvent);
 
-  if (
-    pipeEvent.detail["detailType"] ===
-    "CodePipeline Pipeline Execution State Change"
-  ) {
+  await pipelog.handlePipelineAction(pipeEvent);
+
+  if (!pipelog.name) pipelog.name = pipeEvent.detail.pipeline;
+
+  if (pipeEvent.detailType === "CodePipeline Pipeline Execution State Change") {
     const discord = new Discord();
 
     const failure = await Service.getFirstFailure(pipelog);
