@@ -1,7 +1,8 @@
 version: 0.2
 env:
   shell: bash
-  phases:
+
+phases:
   install:
     runtime-versions:
       nodejs: 12

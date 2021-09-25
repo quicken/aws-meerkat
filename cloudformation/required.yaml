@@ -1,12 +1,44 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: "Provisions the DynamoDB Table that is used by the aws-code-pipeline-monitor to aggregate the outcome of code pipeline executions."
+Description: "Provisions a stack that sends pipeline failure notifications to discord. To use send pipeline life cycle events to the topic created by this lambda, or subscribe this lamdda to any topic that receives life cycle events."
 
-# devops-pipeline-monitor
+# devops-pipeline-monitor v1.0
 Parameters:
   TableName:
     Type: String
     Description: "The name of the DynamoDb table that is used to track pipeline event."
     Default: devops-pipeline-monitor
+
+  CodeBucketName:
+    Type: String
+    Description: The S3 bucket that contains the lambda source code zip archive.
+
+  CodeKey:
+    Type: String
+    Description: The S3 key to the zip file that contains the lambda source code.
+
+  EnvGitProvider:
+    Type: String
+    AllowedValues:
+      - bitbucket
+      - github
+    Description: "The service hosting the repository."
+    Default: github
+
+  EnvGitUsername:
+    Type: String
+    Description: "The username that is used to connect to the git provider."
+
+  EnvGitPassword:
+    Type: String
+    Description: "The password that is used to connect to the git provider. For GitHub this is a Personal Access Token with permission to read commits."
+
+  EnvDiscordAvatar:
+    Type: String
+    Description: "A public URL to an image that will be used as the discord avatar. (128px X 128px)"
+
+  EnvDiscordWebhook:
+    Type: String
+    Description: "The discord webhook to which notifications are posted."
 
   CostCenter:
     Type: String
@@ -71,3 +103,111 @@ Resources:
             Resource: !Ref SnsTopic
       Topics:
         - !Ref SnsTopic
+
+  LambdaServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !Sub "arn:aws:iam::${AWS::AccountId}:root"
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Description: "This service role is assumed by the pipeline-monitor Lambdas."
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      RoleName: "devops-pipeline-monitor-service"
+      Tags:
+        - Key: costcenter
+          Value: !Ref CostCenter
+
+  LambdaServicePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: "devops-pipeline-monitor-service"
+      Description: "This policy grants the permissions required by the pipeline monitor service."
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DynamoDb
+            # Permission to use a Dynamo DB Table to track pipeline lifecycle events.
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+            Effect: Allow
+            Resource: !GetAtt DBTable.Arn
+
+          - Sid: CodeBuild
+            # Permission to retrieve aditional information from builds.
+            Effect: Allow
+            Action:
+              - codebuild:BatchGetBuilds
+            Resource:
+              - "*"
+
+          - Sid: CodeDeploy
+            # Permission to retrieve aditional information from deployments.
+            Effect: Allow
+            Action:
+              - codedeploy:BatchGetDeploymentTargets
+              - codedeploy:ListDeploymentTargets
+            Resource:
+              - "*"
+          - Sid: FetchCodeFromS3
+            # Permission to retrieve source code from S3.
+            Action:
+              - s3:GetObject
+            Effect: Allow
+            Resource: !Sub "arn:aws:s3:::${CodeBucketName}/*"
+      Roles:
+        - !Ref LambdaServiceRole
+
+  PipeLineMonitorLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "devops-pipeline-monitor"
+      Description: "Sends pipeline failure notifications to a discord channel. The lambda must be subscribed to a SNS Topic that receives Code Pipeline Lifecycle events."
+      Handler: "index.handler"
+      Environment:
+        Variables:
+          GIT_PROVIDER: !Ref EnvGitProvider
+          GIT_USERNAME: !Ref EnvGitUsername
+          GIT_PASSWORD: !Ref EnvGitPassword
+          DB_TABLE: !Ref DBTable
+          REGION: !Ref AWS::Region
+          DISCORD_AVATAR: !Ref EnvDiscordAvatar
+          DISCORD_WEBHOOK: !Ref EnvDiscordWebhook
+      PackageType: Zip
+      Role: !GetAtt LambdaServiceRole.Arn
+      Runtime: nodejs14.x
+      Code:
+        S3Bucket: !Ref CodeBucketName
+        S3Key: !Ref CodeKey
+      Tags:
+        - Key: costcenter
+          Value: !Ref CostCenter
+
+  SnsSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: lambda
+      Endpoint: !GetAtt PipeLineMonitorLambda.Arn
+      TopicArn: !Ref SnsTopic
+
+Outputs:
+  TopicArn:
+    Description: "The ARN of the topic that can be used to receive code pipeline life cycle events."
+    Value: !Ref SnsTopic
+    Export:
+      Name: !Sub "${AWS::StackName}-pipeline-monitor-topic"
+
+  PipeLineLambdaArn:
+    Description: "The ARN of the pipeline-monitor lambda."
+    Value: !GetAtt PipeLineMonitorLambda.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-pipeline-monitor-lambda"

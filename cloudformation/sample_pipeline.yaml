@@ -42,6 +42,10 @@ Parameters:
     Description: "The value applied to the costcenter tag."
     Default: devops-pipeline-monitor
 
+  SNSArn:
+    Type: String
+    Description: "The ARN of a SNS Topic to which the pipeline monitor lambda is subscribed."
+
 Resources:
   CIServiceRole:
     Type: AWS::IAM::Role
@@ -217,3 +221,20 @@ Resources:
       Tags:
         - Key: costcenter
           Value: !Ref CostCenter
+
+  PipeLineNotification:
+    Type: AWS::CodeStarNotifications::NotificationRule
+    Properties:
+      DetailType: FULL
+      EventTypeIds:
+        - codepipeline-pipeline-pipeline-execution-failed
+        - codepipeline-pipeline-action-execution-succeeded
+        - codepipeline-pipeline-action-execution-failed
+      Name: "devops-example-pipeline=notification"
+      Resource: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeLine}"
+      Status: ENABLED
+      Targets:
+        - TargetType: SNS
+          TargetAddress: !Ref SNSArn
+      Tags:
+        CostCenter: !Ref CostCenter

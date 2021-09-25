@@ -78,7 +78,7 @@ lambda function will be used to call the Code Deploy API.
 
 #### DISCORD_AVATAR
 
-A URL to an image that will be used as the discord avatar. The image is shown next to the message thread. The image must conform to the dimensions required by discord.
+A public URL to an image that will be used as the discord avatar. The image is shown next to the message thread. The image must conform to the dimensions required by discord.
 
 A 128px x 128px png file with alpha transparency is known to work.
 
