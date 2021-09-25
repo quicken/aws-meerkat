@@ -1,0 +1,219 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "Configure an example pipeline for testing the aws-pipeline monitor."
+# devops-example-pipe-monitor-codepipeline v1.1
+
+Parameters:
+  PipelineName:
+    Type: String
+    Description: The name given to the pipeline.
+
+  ArtifactBucketName:
+    Type: String
+    Description: The S3 bucket to which builld artifacts are written.
+
+  GitProvider:
+    Type: String
+    AllowedValues:
+      - BITBUCKET
+      - GITHUB
+    Description: The type of repository that contains the source code to be built.
+    Default: GITHUB
+
+  GitProviderConnection:
+    Type: String
+    Description: The ARN of the code star connection that is linked to the git provider. (GitHub / Bitbucket).
+
+  CloneUrl:
+    Type: String
+    Description: The HTTPS clone URL to the repository that contains the source and the buildspec file
+
+  RepositoryId:
+    Type: String
+    Description: "The id of the git repository. e.g. Given the command git@github.com:quicken/aws-code-pipeline-monitor.git the id is: quicken/aws-code-pipeline-monitor"
+
+  BranchPattern:
+    Type: String
+    Description: "The branch pattern that will trigger this build."
+    MinLength: 1
+    MaxLength: 50
+
+  CostCenter:
+    Type: String
+    Description: "The value applied to the costcenter tag."
+    Default: devops-pipeline-monitor
+
+Resources:
+  CIServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+                - codebuild.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Description: "This an example ci service role for testing the code-pipeline-monitor. Not recommended for production use."
+      RoleName: "devops-example-ci-service"
+      Tags:
+        - Key: costcenter
+          Value: !Ref CostCenter
+
+  CIServicePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: "devops-example-ci-service-policy"
+      Description: "This an example policy to grant permissions required by the example ci service role to run the example pipeline montitor pipeline for testing. Not recommended for production use."
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: CloudWatchLogsPolicy
+            # Allow code build to create cloud-watch logs for tracking the build output.
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Effect: Allow
+            Resource: !Sub "arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/codebuild/*"
+
+          - Sid: Bucket
+            # Permission to read and write build artifacts. (bucket level)
+            Effect: Allow
+            Action:
+              - s3:*
+            Resource:
+              - !Sub "arn:aws:s3:::${ArtifactBucketName}"
+              - !Sub arn:aws:s3:::${ArtifactBucketName}/*
+
+          - Sid: CodeStar
+            # Grant permission to access git provider connections.
+            Effect: Allow
+            Action:
+              - "codestar-connections:GetConnection"
+              - "codestar-connections:UseConnection"
+            Resource:
+              - "*"
+
+          - Sid: CodeBuild
+            # Allow running code-build tasks.
+            Effect: Allow
+            Action:
+              - codebuild:BatchPutTestCases
+              - codebuild:CreateReportGroup
+              - codebuild:CreateReport
+              - codebuild:UpdateReport
+              - codebuild:BatchGetBuilds
+              - codebuild:StartBuild
+              - codebuild:BatchGetBuildBatches
+              - codebuild:StartBuildBatch
+            Resource:
+              - "*"
+
+          - Sid: VpcAll
+            # Grant permission attach vpc and security groups to a code build environment.
+            Effect: Allow
+            Action:
+              - ec2:DescribeSecurityGroups
+              - ec2:DescribeSubnets
+              - ec2:DescribeNetworkInterfaces
+              - ec2:DeleteNetworkInterface
+            Resource:
+              - "*"
+
+      Roles:
+        - !Ref CIServiceRole
+
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        EncryptionDisabled: true
+        Location: !Ref ArtifactBucketName
+        Name: "/"
+        NamespaceType: NONE
+        OverrideArtifactName: true
+        Packaging: NONE
+        Path: /pipeline-monitor/build/"
+        Type: S3
+      BadgeEnabled: false
+      Cache:
+        Type: LOCAL
+        Modes:
+          - LOCAL_SOURCE_CACHE
+          - LOCAL_CUSTOM_CACHE
+      Description: "Builds the example pipeline monitor application."
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:3.0
+        PrivilegedMode: true
+        Type: LINUX_CONTAINER
+
+      QueuedTimeoutInMinutes: 5
+      ServiceRole: !Ref CIServiceRole
+      Source:
+        BuildSpec: buildspec.yml
+        GitCloneDepth: 1
+        Location: !Ref CloneUrl
+        ReportBuildStatus: false
+        Type: !Ref GitProvider
+      SourceVersion: develop
+      # Builds will be triggered by web-hooks which call AWS code-pipeline.
+      Triggers:
+        Webhook: false
+      TimeoutInMinutes: 10
+      Tags:
+        - Key: costcenter
+          Value: !Ref CostCenter
+
+  CodePipeLine:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      ArtifactStore:
+        Location: !Ref ArtifactBucketName
+        Type: S3
+      Name: !Ref PipelineName
+      RoleArn: !GetAtt CIServiceRole.Arn
+      Stages:
+        - Name: Source
+          Actions:
+            - ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeStarSourceConnection
+                Version: "1"
+              Configuration:
+                BranchName: !Ref BranchPattern
+                ConnectionArn: !Ref GitProviderConnection
+                FullRepositoryId: !Ref RepositoryId
+                OutputArtifactFormat: CODE_ZIP
+              InputArtifacts: []
+              Name: Source
+              Namespace: SourceVariables
+              OutputArtifacts:
+                - Name: SourceArtifact
+              Region: !Ref AWS::Region
+              RunOrder: 1
+
+        - Name: Build
+          Actions:
+            - ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: "1"
+              Configuration:
+                ProjectName: !Ref CodeBuildProject
+              InputArtifacts:
+                - Name: SourceArtifact
+              Name: Build
+              Namespace: BuildVariables
+              OutputArtifacts:
+                - Name: BuildArtifact
+              Region: ap-southeast-2
+              RunOrder: 1
+      Tags:
+        - Key: costcenter
+          Value: !Ref CostCenter

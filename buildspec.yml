@@ -1,0 +1,26 @@
+version: 0.2
+env:
+  shell: bash
+  phases:
+  install:
+    runtime-versions:
+      nodejs: 12
+    commands:
+      - echo Installing
+      - yarn --cwd $CODEBUILD_SRC_DIR install
+
+  pre_build:
+    commands:
+      - yarn --cwd $CODEBUILD_SRC_DIR clean
+
+  build:
+    commands:
+      - echo Build started at `date`
+      - yarn --cwd $CODEBUILD_SRC_DIR build
+      - echo Build completed at `date`
+
+artifacts:
+  files:
+    - build/**/*
+  name: aws-codepipeline-monitor-$CODEBUILD_BUILD_NUMBER
+  discard-paths: no

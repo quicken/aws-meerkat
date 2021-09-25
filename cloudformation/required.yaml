@@ -8,6 +8,11 @@ Parameters:
     Description: "The name of the DynamoDb table that is used to track pipeline event."
     Default: devops-pipeline-monitor
 
+  CostCenter:
+    Type: String
+    Description: "The value applied to the costcenter tag."
+    Default: devops-pipeline-monitor
+
 Resources:
   DBTable:
     Type: AWS::DynamoDB::Table
@@ -20,3 +25,49 @@ Resources:
         - AttributeName: executionId
           KeyType: HASH
       TableName: !Ref TableName
+      Tags:
+        - Key: costcenter
+          Value: !Ref CostCenter
+
+  SnsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Tags:
+        - Key: Name
+          Value: devops-pipeline-monitor
+        - Key: costcenter
+          Value: !Ref CostCenter
+
+  SnsPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Sid: ServicesInOwningAccount
+            Effect: Allow
+            Principal:
+              AWS: "*"
+            Action:
+              - SNS:GetTopicAttributes
+              - SNS:SetTopicAttributes
+              - SNS:AddPermission
+              - SNS:RemovePermission
+              - SNS:DeleteTopic
+              - SNS:Subscribe
+              - SNS:ListSubscriptionsByTopic
+              - SNS:Publish
+              - SNS:Receive
+            Resource: !Ref SnsTopic
+            Condition:
+              StringEquals:
+                AWS:SourceOwner: !Ref AWS::AccountId
+
+          - Sid: AllowEventBridge
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action:
+              - SNS:Publish
+            Resource: !Ref SnsTopic
+      Topics:
+        - !Ref SnsTopic
