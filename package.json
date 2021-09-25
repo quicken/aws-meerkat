@@ -8,10 +8,10 @@
   "scripts": {
     "test": "jest",
     "lint": "eslint src/ --ext .js,.jsx,.ts,.tsx",
-    "build": "./package.sh",
+    "build": "./build.sh",
+    "bundle": "./package.sh",
     "start": "tsc -p tsconfig.json && node -r dotenv/config ./build/index.js",
-    "clean": "rm -rf build build",
-    "ts-node": "ts-node"
+    "clean": "rm -rf build build"
   },
   "devDependencies": {
     "@aws-sdk/types": "^3.32.0",
