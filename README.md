@@ -1,9 +1,13 @@
 # Meerkat - AWS DevOp Bot for Discord
 
+![image info](https://raw.githubusercontent.com/wiki/quicken/aws-meerkat/img/meerkat-sml.png)
+
 Meerkat works to deliver your AWS CodePipeline status and AWS CloudWatch Alarms to your Discord channel.
 
 Where Meerkat shines is when it listens to AWS Code Pipeline Life Cycle Events. Meerkat tracks each action for pipeline execution. In the case of a pipeline failure
 Meerkat will run off and fetch helpful troubleshooting data before sending you an easily readable notification. To reduce noise pipeline action events are intentionally filtered so you will only receive one message per pipeline execution.
+
+![image info](https://raw.githubusercontent.com/wiki/quicken/aws-meerkat/img/meerkat-build-failed.png)
 
 ## Features
 
@@ -14,6 +18,8 @@ Meerkat will run off and fetch helpful troubleshooting data before sending you a
 - Beautify cloud watch alarms and shows state changes.
 - Posts to Discord.
 - Works with GitHub and Bitbucket.
+
+
 
 ## Getting Started
 
