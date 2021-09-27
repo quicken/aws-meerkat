@@ -1,13 +1,45 @@
-# aws-code-pipeline-monitor
+# Meerkat - AWS DevOp Bot for Discord
 
-The code pipeline monitor collects and enriches pipeline notification events making the aggregated data available to subsequent notification events.
+Meerkat works to deliver your Code Pipeline status and Cloud Watch alerts to your Discord channel.
 
-The Lambda execution role requires the following permissions in addition to the standard Lambda execution permissions:
+Where Meerkat shines is when it listens to AWS Code Pipeline Life Cycle Events. Meerkat tracks each action for pipeline execution. In the case of a pipeline failure
+Meerkat will run off and fetch helpful troubleshooting data before sending you an easily readable notification. To reduce noise pipeline action events are intentionally filtered so you will only receive one message per pipeline execution.
 
-- dynamodb:PutItem (To the table created for this lambda)
-- dynamodb:GetItem (To the table created for this lambda)
-- codebuild:BatchGetBuilds
-- sts:AssumeRole (If using cross-account deployments, the role that is assumed to interact with code deploy. See the information for the DEPLOY_ARN environment variables.)
+## Features
+
+- All pipeline failures include the Commit Message, Author and a link to the commit.
+- Build failures include a link to viewing the code build, build log.
+- Deploy failures (EC2) show the script and reason for the deployment failure.
+- Deployment information is retrieved across AWS accounts.
+- Beautify cloud watch alarms and shows state changes.
+- Posts to Discord.
+- Works with GitHub and Bitbucket.
+
+## Getting Started
+
+### You will need:
+
+- Your GitHub Username and Personal AccessToken or Bitbucket Username & Password
+- Your repository id
+- Your repository URL (The http url you would use with git clone)
+- Discord Webhook Url
+- A hosted .png file for the discord avatar. 128px X 128px
+- An AWS Account (obviously)
+- An AWS S3 Bucket.
+
+### Provisioning Meerkat
+
+- Upload the release zip file to your S3 Bucket and make a note of the bucket name and object key.
+- Create a cloudformation stack using the cloudformation template provided in this repository: /cloudformation meerkat.yaml
+
+The cloudformation will provision the resources and permission required by meerkat.
+
+If you already have a SNS Topic that is receiving Code Pipeline Events or Cloud Watch alarms simply subribe meerkat to that topic. Otherwise, you can use the
+provisioned SNS Topic as a target for notifications.
+
+#### Sample Code Pipeline
+
+This repository also contains an example cloud formation template that will provision an end to end AWS Code pipeline that will send notification to discord using Meerkat.
 
 ## Setup
 
@@ -22,6 +54,15 @@ The SNS Topic to which the Lambda is subscribed must receive all of the followin
 
 - success (Success messages are only sent on this event to avoid spamming users for a single pipeline success.)
 - failed (Failed messages are only sent on this event to avoid spamming users for a single pipeline failure. The event is NOT used to determine if the pipeline failed.)
+
+## Required Permissions
+
+The Lambda execution role requires the following permissions in addition to the standard Lambda execution permissions:
+
+- dynamodb:PutItem (To the table created for this lambda)
+- dynamodb:GetItem (To the table created for this lambda)
+- codebuild:BatchGetBuilds
+- sts:AssumeRole (If using cross-account deployments, the role that is assumed to interact with code deploy. See the information for the DEPLOY_ARN environment variables.)
 
 ## Environment Variables
 
@@ -76,6 +117,8 @@ If "DEPLOY_ARN" is defined it will be used as a fallback in the case that no DEP
 
 Finally, if the environment variable is set to empty string or no DEPLOY_ARN variables are specified then the role assigned to the
 lambda function will be used to call the Code Deploy API.
+
+Constructive feedback, feature requests and discussions are welcomed.
 
 #### DISCORD_AVATAR
 

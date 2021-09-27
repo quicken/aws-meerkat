@@ -1,8 +1,13 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: "Provisions a stack that sends pipeline failure notifications to discord. To use send pipeline life cycle events to the topic created by this lambda, or subscribe this lamdda to any topic that receives life cycle events."
+Description: "Provisions the stack required by Meerkat the devops bot. Meerkat can be subscribed to SNS Topics and is especially usefull when listening for code pipeline life cycle events and cloudwatch alarms."
 
 # devops-pipeline-monitor v1.0
 Parameters:
+  NameSpace:
+    Type: String
+    Description: "Resources that are not explicitly named are prefixed with this value."
+    Default: "devops"
+
   TableName:
     Type: String
     Description: "The name of the DynamoDb table that is used to track pipeline event."
@@ -66,7 +71,7 @@ Resources:
     Properties:
       Tags:
         - Key: Name
-          Value: devops-pipeline-monitor
+          Value: !Ref NameSpace
         - Key: costcenter
           Value: !Ref CostCenter
 
@@ -124,7 +129,7 @@ Resources:
       Description: "This service role is assumed by the pipeline-monitor Lambdas."
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      RoleName: "devops-pipeline-monitor-service"
+      RoleName: !Sub "${NameSpace}-meerkatbot"
       Tags:
         - Key: costcenter
           Value: !Ref CostCenter
@@ -132,8 +137,8 @@ Resources:
   LambdaServicePolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
-      ManagedPolicyName: "devops-pipeline-monitor-service"
-      Description: "This policy grants the permissions required by the pipeline monitor service."
+      ManagedPolicyName: !Sub "${NameSpace}meerkatbot"
+      Description: "This policy grants the permissions required by the meerkat bot."
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -170,11 +175,11 @@ Resources:
       Roles:
         - !Ref LambdaServiceRole
 
-  PipeLineMonitorLambda:
+  MeerkatLambda:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: "devops-pipeline-monitor"
-      Description: "Sends pipeline failure notifications to a discord channel. The lambda must be subscribed to a SNS Topic that receives Code Pipeline Lifecycle events."
+      FunctionName: !Sub "${NameSpace}meerkatbot"
+      Description: "Meerkat forwards SNS messages to Discord or Slack. Meerkat will enrich messages received from GitHub, Bitbucket, Cloudwatch, Code Build, Code Pipeline and Code Deploy to assist troubleshooting issues. The lambda must be subscribed to a SNS Topic."
       Handler: "index.handler"
       Environment:
         Variables:
@@ -195,11 +200,11 @@ Resources:
         - Key: costcenter
           Value: !Ref CostCenter
 
-  PipeLineMonitorLambdaPermission:
+  MeerkatLambdaPermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref PipeLineMonitorLambda
+      FunctionName: !Ref MeerkatLambda
       Principal: sns.amazonaws.com
       SourceArn: !Ref SnsTopic
 
@@ -207,7 +212,7 @@ Resources:
     Type: AWS::SNS::Subscription
     Properties:
       Protocol: lambda
-      Endpoint: !GetAtt PipeLineMonitorLambda.Arn
+      Endpoint: !GetAtt MeerkatLambda.Arn
       TopicArn: !Ref SnsTopic
 
 Outputs:
@@ -219,6 +224,6 @@ Outputs:
 
   PipeLineLambdaArn:
     Description: "The ARN of the pipeline-monitor lambda."
-    Value: !GetAtt PipeLineMonitorLambda.Arn
+    Value: !GetAtt MeerkatLambda.Arn
     Export:
       Name: !Sub "${AWS::StackName}-pipeline-monitor-lambda"
