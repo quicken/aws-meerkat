@@ -5,6 +5,7 @@ import { Service } from "./lib/Service";
 import { Discord } from "./lib/Discord";
 import { BitBucket } from "./lib/BitBucket";
 import { GitHub } from "./lib/GitHub";
+import { Util } from "./lib/Util";
 
 const REGION = process.env.REGION || "";
 const DB_TABLE = process.env.DB_TABLE || "devops-pipeline-monitor";
@@ -19,6 +20,9 @@ export const handler: SNSHandler = async (
   event: SNSEvent,
   context?: Context
 ) => {
+  console.log("v1.1.0");
+  console.log(handler);
+
   const discord = new Discord();
 
   let pipeEvent;
@@ -45,6 +49,21 @@ export const handler: SNSHandler = async (
     !pipeEvent.hasOwnProperty("detailType") ||
     !pipeEvent.detailType.startsWith("CodePipeline")
   ) {
+    /* Handle Cloudwatch Alarms. */
+    if (Util.isAlarmMessage(pipeEvent)) {
+      const alarm = Util.castToAlarm(pipeEvent);
+      const alarmMessage = discord.alarmMessage(alarm);
+      const alarmColor = ["alarm", "nag"].includes(alarm.type)
+        ? 10038562
+        : 3066993; /* Red or Green */
+      await discord.postMessage(
+        alarmMessage,
+        DISCORD_WEBHOOK,
+        DISCORD_AVATAR,
+        DISCORD_USERNAME,
+        alarmColor
+      );
+    }
     return;
   }
 

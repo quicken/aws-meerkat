@@ -4,7 +4,9 @@ import {
   LogEntryType,
   BuildLogEntryType,
   DeployLogEntryType,
+  AlarmType,
 } from "../types";
+import { Z_FILTERED } from "zlib";
 
 interface DiscordMessageType {
   title: string;
@@ -119,6 +121,41 @@ export class Discord {
       fields: [],
       footer: "",
     };
+  }
+
+  public alarmMessage(alert: AlarmType): DiscordMessageType {
+    const message: DiscordMessageType = {
+      title: "",
+      description: alert.description,
+      fields: [],
+      footer: "",
+    };
+
+    switch (alert.type) {
+      case "alarm":
+        message.title = `:face_with_symbols_over_mouth:  ${alert.name} is in alarm.`;
+
+        const detail = "```bash\n " + alert.reason + " ```";
+
+        message.fields.push({
+          name: `Reason`,
+          value: detail,
+        });
+        break;
+      case "nag":
+        message.title = `:skull_crossbones: ${alert.name} is still broken.`;
+        message.description = "";
+        break;
+      case "recovered":
+        message.title = `::partying_face: ${alert.name} recovered.`;
+        break;
+      case "healthy":
+        message.title = `:call_me:  ${alert.name} is healthy.`;
+        message.description = "";
+        break;
+    }
+
+    return message;
   }
 
   /**

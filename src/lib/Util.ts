@@ -1,3 +1,4 @@
+import { AlarmType } from "../types";
 import * as https from "https";
 
 import {
@@ -5,6 +6,7 @@ import {
   AssumeRoleCommand,
   AssumeRoleCommandInput,
 } from "@aws-sdk/client-sts";
+import { StatusType } from "@aws-sdk/client-codebuild";
 
 export class Util {
   /**
@@ -126,5 +128,37 @@ export class Util {
       }
     }
     return defaultArn;
+  };
+
+  public static isAlarmMessage = (obj: any): boolean => {
+    return (
+      obj.hasOwnProperty("AlarmDescription") &&
+      obj.hasOwnProperty("AlarmArn") &&
+      obj.hasOwnProperty("NewStateReason")
+    );
+  };
+
+  public static castToAlarm = (obj: any): AlarmType => {
+    let type: "alarm" | "nag" | "recovered" | "healthy" = "alarm";
+
+    if (obj.NewStateValue === obj.OldStateValue) {
+      if (obj.NewStateValue === "OK") {
+        type = "healthy";
+      } else {
+        type = "nag";
+      }
+    } else {
+      if (obj.NewStateValue === "OK" && obj.OldStateValue === "ALARM") {
+        type = "recovered";
+      }
+    }
+
+    return {
+      name: obj.AlarmName,
+      description: obj.AlarmDescription,
+      reason: obj.NewStateReason,
+      date: new Date(obj.StateChangeTime).getTime(),
+      type: type,
+    };
   };
 }

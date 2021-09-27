@@ -43,3 +43,11 @@ export interface InstanceDiagnosticType {
   instanceid: string;
   diagnostics: DiagnosticType | null;
 }
+
+export interface AlarmType {
+  name: string;
+  description: string;
+  reason: string;
+  date: number;
+  type: "alarm" | "nag" | "recovered" | "healthy";
+}

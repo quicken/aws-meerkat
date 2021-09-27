@@ -5,6 +5,7 @@ import {
   LogEntryType,
   BuildLogEntryType,
   DeployLogEntryType,
+  AlarmType,
 } from "../types";
 
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || "";
@@ -107,4 +108,27 @@ test("create-deploy-failed-message", async () => {
 
   // discord.postMessage(message,DISCORD_WEBHOOK,DISCORD_AVATAR,DISCORD_USERNAME);
   expect(message.fields.length).toBe(3);
+});
+
+test("send-alarm", async () => {
+  const alarm: AlarmType = {
+    name: "my-system-lb",
+    description: "This is my Alarm",
+    reason:
+      "Threshold Crossed: 2 out of the last 2 datapoints [5.535714886726143 (27/09/21 01:36:00), 1.7514244573552422 (27/09/21 01:35:00)] were greater than the threshold (1.0) (minimum 2 datapoints for OK -> ALARM transition).",
+    date: 1632706699630,
+    type: "nag",
+  };
+
+  const discord = new Discord();
+  const message = discord.alarmMessage(alarm);
+
+  discord.postMessage(
+    message,
+    DISCORD_WEBHOOK,
+    DISCORD_AVATAR,
+    DISCORD_USERNAME
+  );
+
+  // expect(message.description).toBe("This is my Alarm");
 });
