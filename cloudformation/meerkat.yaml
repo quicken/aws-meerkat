@@ -5,13 +5,13 @@ Description: "Provisions the stack required by Meerkat the devops bot. Meerkat c
 Parameters:
   NameSpace:
     Type: String
-    Description: "Resources that are not explicitly named are prefixed with this value."
-    Default: "devops"
+    Description: "Resources that are not explicitly named are prefixed with this value. {NameSpace}meerkatbot"
+    Default: "devops-"
 
   TableName:
     Type: String
     Description: "The name of the DynamoDb table that is used to track pipeline event."
-    Default: devops-pipeline-monitor
+    Default: meerkatbot
 
   CodeBucketName:
     Type: String
@@ -19,7 +19,8 @@ Parameters:
 
   CodeKey:
     Type: String
-    Description: The S3 key to the zip file that contains the lambda source code.
+    Description: The S3 key to the zip file that contains the lambda source code. (no leading slash)
+    Default: aws-meerkat-1.1.0.zip
 
   EnvGitProvider:
     Type: String
@@ -48,7 +49,7 @@ Parameters:
   CostCenter:
     Type: String
     Description: "The value applied to the costcenter tag."
-    Default: devops-pipeline-monitor
+    Default: meerkatbot
 
 Resources:
   DBTable:
@@ -71,7 +72,7 @@ Resources:
     Properties:
       Tags:
         - Key: Name
-          Value: !Ref NameSpace
+          Value: !Sub "${NameSpace}meerkatbot"
         - Key: costcenter
           Value: !Ref CostCenter
 
@@ -109,6 +110,16 @@ Resources:
             Condition:
               StringEquals:
                 AWS:SourceAccount: !Ref AWS::AccountId
+          - Sid: CrossAccountCloudWatchAlarms
+            Effect: Allow
+            Principle:
+              AWS: "*"
+            Action: "SNS:Publish"
+            Resource: !Ref SnsTopic
+            Condition:
+              ArnLike:
+                aws:SourceArn:
+                  - !Sub "arn:aws:clouwatch:${AWS::Region}:${AWS::AccountId}:alarm:*"
       Topics:
         - !Ref SnsTopic
 
@@ -129,7 +140,7 @@ Resources:
       Description: "This service role is assumed by the pipeline-monitor Lambdas."
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      RoleName: !Sub "${NameSpace}-meerkatbot"
+      RoleName: !Sub "${NameSpace}meerkatbot"
       Tags:
         - Key: costcenter
           Value: !Ref CostCenter
