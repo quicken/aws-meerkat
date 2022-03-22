@@ -20,6 +20,7 @@ export class GitHub {
 
   /**
    * Get details for the specified commit from the bit bucket api.
+   * https://api.github.com/repositories/409141660/git/commits/f7ec85262da48e2b15d03037b138963c5a89d39f
    * https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Bworkspace%7D/%7Brepo_slug%7D/commit/%7Bcommit%7D
    * @param repo    The repository id.
    * @param {*} commitId The id of the commit for which information should be retrieved.
@@ -44,7 +45,12 @@ export class GitHub {
       },
     };
 
-    let response = await Util.callEndpoint(options, "");
+    let response = await Util.callEndpoint<any>(options, "");
+    if ([301, 302].includes(response.statuscode)) {
+      /* Follow the redirect. (301,302) */
+      options.path = response.body.url;
+      response = await Util.callEndpoint<any>(options, "");
+    }
 
     return {
       id: commitId,
