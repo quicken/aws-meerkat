@@ -1,4 +1,5 @@
 import { AlarmType } from "../types";
+import { URL } from "node:url";
 import * as https from "https";
 
 import {
@@ -6,7 +7,11 @@ import {
   AssumeRoleCommand,
   AssumeRoleCommandInput,
 } from "@aws-sdk/client-sts";
-import { StatusType } from "@aws-sdk/client-codebuild";
+
+export type SimpleHttpResponse<T> = {
+  statuscode: number;
+  body: T;
+};
 
 export class Util {
   /**
@@ -16,10 +21,10 @@ export class Util {
    * @param {*} content The content to be passed in the request.
    * @returns A promise which returns the body and statuscode of the response.
    */
-  public static callEndpoint = (
-    options: any,
+  public static callEndpoint = <T>(
+    options: string | https.RequestOptions | URL,
     content: string
-  ): Promise<any> => {
+  ): Promise<SimpleHttpResponse<T>> => {
     return new Promise((resolve, reject) => {
       let incoming = "";
       const req = https.request(options, (res) => {
@@ -27,10 +32,11 @@ export class Util {
           incoming += chunk;
         });
         res.on("end", () => {
-          if (
-            res.statusCode &&
-            (res.statusCode >= 200 || res.statusCode < 300)
-          ) {
+          const statusCode =
+            res.statusCode && res.statusCode >= 200 && res.statusCode < 300
+              ? 200
+              : res.statusCode || 500;
+          if ([200, 301, 302].includes(statusCode)) {
             let body;
             try {
               body = JSON.parse(incoming);
@@ -39,13 +45,13 @@ export class Util {
             }
 
             resolve({
-              statuscode: 200,
+              statuscode: statusCode,
               body: body,
             });
           }
 
           reject({
-            statuscode: res.statusCode,
+            statuscode: statusCode,
             body: incoming,
           });
         });
