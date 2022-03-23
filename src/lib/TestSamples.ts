@@ -1,8 +1,51 @@
 import "dotenv/config";
-const TEST_BITBUCKET_REPO = process.env.TEST_BITBUCKET_REPO || "";
-const TEST_BITBUCKET_COMMIT = process.env.TEST_BITBUCKET_COMMIT || "";
-const TEST_GITHUB_REPO = process.env.TEST_GITHUB_REPO || "";
-const TEST_GITHUB_COMMIT = process.env.TEST_GITHUB_COMMIT || "";
+
+export const PIPELINE_SUCCESS_EVENT = {
+  account: "111111111111",
+  detailType: "CodePipeline Pipeline Execution State Change",
+  region: "ap-southeast-2",
+  source: "aws.codepipeline",
+  time: "2021-09-25T07:59:53Z",
+  notificationRuleArn:
+    "arn:aws:codestar-notifications:ap-southeast-2:111111111111:notificationrule/b458395bbc1aa895fe86a3b3bf0aa7a71c9fffff",
+  detail: {
+    pipeline: "example-pipe-monitor-codepipeline",
+    "execution-id": "a6bf7e98-2fd2-4977-aed8-c4abd047a8c0",
+    state: "SUCCEEDED",
+    version: 1.0,
+  },
+  resources: [
+    "arn:aws:codepipeline:ap-southeast-2:111111111111:example-pipe-monitor-codepipeline",
+  ],
+  additionalAttributes: {},
+};
+
+export const SNS_ALARM_MESSAGE = {
+  AlarmName: "my-system-lb",
+  AlarmDescription: "This is my Alarm",
+  AWSAccountId: "111111111111",
+  NewStateValue: "ALARM",
+  NewStateReason:
+    "Threshold Crossed: 2 out of the last 2 datapoints [5.535714886726143 (27/09/21 01:36:00), 1.7514244573552422 (27/09/21 01:35:00)] were greater than the threshold (1.0) (minimum 2 datapoints for OK -> ALARM transition).",
+  StateChangeTime: "2021-09-27T01:38:19.630+0000",
+  Region: "Asia Pacific (Sydney)",
+  AlarmArn: "arn:aws:cloudwatch:ap-southeast-2:111111111111:alarm:lb-latency",
+  OldStateValue: "OK",
+  Trigger: {
+    MetricName: "TargetResponseTime",
+    Namespace: "AWS/ApplicationELB",
+    StatisticType: "Statistic",
+    Statistic: "AVERAGE",
+    Unit: null,
+    Dimensions: [{ value: "app/lb/12343464af00accc", name: "LoadBalancer" }],
+    Period: 60,
+    EvaluationPeriods: 2,
+    ComparisonOperator: "GreaterThanThreshold",
+    Threshold: 1.0,
+    TreatMissingData: "- TreatMissingData: missing",
+    EvaluateLowSampleCountPercentile: "",
+  },
+};
 
 /**
  * An example payload received for an AWS CodePipeline SOURCE Action Event coming from Bitbucket.
@@ -20,7 +63,7 @@ export const PIPELINE_SOURCE_ACTION_BITBUCKET = {
     "execution-id": "a6bf7e98-2fd2-4977-aed8-c4abd047a8c0",
     stage: "Source",
     "execution-result": {
-      "external-execution-url": `https://ap-southeast-2.console.aws.amazon.com/codesuite/settings/connections/redirect?connectionArn=arn:aws:codestar-connections:ap-southeast-2:111111111111:connection/&referenceType=COMMIT&FullRepositoryId=${TEST_BITBUCKET_REPO}&Commit=${TEST_BITBUCKET_COMMIT}`,
+      "external-execution-url": `https://ap-southeast-2.console.aws.amazon.com/codesuite/settings/connections/redirect?connectionArn=arn:aws:codestar-connections:ap-southeast-2:111111111111:connection/&referenceType=COMMIT&FullRepositoryId=youraccount/yourproject.git&Commit=3fcdaa5ac3e29c79008319ede6c092643f204af0`,
       "external-execution-summary":
         '{"ProviderType":"BitBucket","CommitMessage":"The example pipeline now also creates the notification rules expected by\\nthe pipeline monitor."}',
       "external-execution-id": "f7ec85262da48e2b15d03037b138963c5a89d39f",
@@ -67,7 +110,7 @@ export const PIPELINE_SOURCE_ACTION_GITHUB = {
     "execution-id": "a6bf7e98-2fd2-4977-aed8-c4abd047a8c0",
     stage: "Source",
     "execution-result": {
-      "external-execution-url": `https://ap-southeast-2.console.aws.amazon.com/codesuite/settings/connections/redirect?connectionArn=arn:aws:codestar-connections:ap-southeast-2:111111111111:connection/11c9e&referenceType=COMMIT&FullRepositoryId=${TEST_GITHUB_REPO}&Commit=${TEST_GITHUB_COMMIT}`,
+      "external-execution-url": `https://ap-southeast-2.console.aws.amazon.com/codesuite/settings/connections/redirect?connectionArn=arn:aws:codestar-connections:ap-southeast-2:111111111111:connection/11c9e&referenceType=COMMIT&FullRepositoryId=quicken/aws-code-pipeline-monitor&Commit=f7ec85262da48e2b15d03037b138963c5a89d39f`,
       "external-execution-summary":
         '{"ProviderType":"GitHub","CommitMessage":"The example pipeline now also creates the notification rules expected by\\nthe pipeline monitor."}',
       "external-execution-id": "f7ec85262da48e2b15d03037b138963c5a89ffff",

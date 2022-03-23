@@ -19,8 +19,6 @@ Meerkat will run off and fetch helpful troubleshooting data before sending you a
 - Posts to Discord.
 - Works with GitHub and Bitbucket.
 
-
-
 ## Getting Started
 
 ### You will need:
@@ -163,47 +161,6 @@ https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html
 
 ### Environment variables for running Unit-Test
 
-#### TEST_BITBUCKET_AUTHOR
-
-The raw author name that is expected to be returned by the Bitbucket API. The unit test asserts against this author.
-
-#### TEST_BITBUCKET_COMMIT
-
-For unit testing only. The commit id that is used by unit tests.
-
-#### TEST_BITBUCKET_REPO
-
-For unit testing only. The bitbucket repository id in the format "{workspace}/{repository}" that will be used
-by unit tests.
-
-e.g Given this command:
-
-"git clone git@bitbucket.org:myuser/myrepo.git"
-
-The repository id would be:
-
-"myuser/myrepo.git"
-
 #### TEST_CODE_BUILD_ID
 
 For unit testing only. A code build deployment id from a failed build.
-
-#### TEST_GITHUB_USERNAME
-
-The git hub username used to authenticate during unit testing.
-
-#### TEST_GITHUB_TOKEN
-
-The git hub token used to authenticate during unit testing.
-
-#### TEST_GITHUB_REPO
-
-The git hub repo used for unit test.
-
-#### TEST_GITHUB_AUTHOR
-
-The raw author name that is expected to be returned by the Git Hub API. The unit test asserts against this author.
-
-#### TEST_GITHUB_COMMIT
-
-The git hub commit used for unit testing.

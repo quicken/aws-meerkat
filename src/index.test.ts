@@ -1,14 +1,11 @@
 import "dotenv/config";
 import { SNSEvent, Context } from "aws-lambda";
 import { handler as lambdaHandler } from "./index";
-
-const BITBUCKET = {
-  username: process.env.BITBUCKET_USERNAME || "",
-  password: process.env.BITBUCKET_PASSWORD || "",
-  repo: process.env.TEST_BITBUCKET_REPO || "",
-  commitid: process.env.TEST_BITBUCKET_COMMIT || "",
-  author: process.env.TEST_BITBUCKET_AUTHOR || "",
-};
+import {
+  PIPELINE_SUCCESS_EVENT,
+  SNS_ALARM_MESSAGE,
+  PIPELINE_SOURCE_ACTION_GITHUB,
+} from "./lib/TestSamples";
 
 test("run-lambda", async () => {
   const fakeEvent = {
@@ -21,7 +18,7 @@ test("run-lambda", async () => {
         provider: "CodeStarSourceConnection",
       },
       "execution-result": {
-        "external-execution-url": `https://blahblah/foo/bar?Commit=${BITBUCKET.commitid}&FullRepositoryId=${BITBUCKET.repo}`,
+        "external-execution-url": `https://blahblah/foo/bar?Commit=3fcdaa5ac3e29c79008319ede6c092643f204af0&FullRepositoryId=youraccount/yourproject.git`,
       },
     },
   };
@@ -37,12 +34,13 @@ test("run-lambda", async () => {
 });
 
 test("pipeline-success-event", async () => {
-  await runLambdaWithSNS("Testing", pipelineSuccessEvent);
+  //await runLambdaWithSNS("Testing", PIPELINE_SUCCESS_EVENT);
   expect(1).toBe(1);
 });
 
 test("alarm-failed-event", async () => {
-  await runLambdaWithSNS("Testing", snsAlarmMessage);
+  return;
+  await runLambdaWithSNS("Testing", SNS_ALARM_MESSAGE);
   expect(1).toBe(1);
 });
 
@@ -104,50 +102,3 @@ function createContext(): Context {
     succeed: (messageOrObject) => {},
   };
 }
-
-const pipelineSuccessEvent = {
-  account: "111111111111",
-  detailType: "CodePipeline Pipeline Execution State Change",
-  region: "ap-southeast-2",
-  source: "aws.codepipeline",
-  time: "2021-09-25T07:59:53Z",
-  notificationRuleArn:
-    "arn:aws:codestar-notifications:ap-southeast-2:111111111111:notificationrule/b458395bbc1aa895fe86a3b3bf0aa7a71c9fffff",
-  detail: {
-    pipeline: "example-pipe-monitor-codepipeline",
-    "execution-id": "a6bf7e98-2fd2-4977-aed8-c4abd047a8c0",
-    state: "SUCCEEDED",
-    version: 1.0,
-  },
-  resources: [
-    "arn:aws:codepipeline:ap-southeast-2:111111111111:example-pipe-monitor-codepipeline",
-  ],
-  additionalAttributes: {},
-};
-
-const snsAlarmMessage = {
-  AlarmName: "my-system-lb",
-  AlarmDescription: "This is my Alarm",
-  AWSAccountId: "111111111111",
-  NewStateValue: "ALARM",
-  NewStateReason:
-    "Threshold Crossed: 2 out of the last 2 datapoints [5.535714886726143 (27/09/21 01:36:00), 1.7514244573552422 (27/09/21 01:35:00)] were greater than the threshold (1.0) (minimum 2 datapoints for OK -> ALARM transition).",
-  StateChangeTime: "2021-09-27T01:38:19.630+0000",
-  Region: "Asia Pacific (Sydney)",
-  AlarmArn: "arn:aws:cloudwatch:ap-southeast-2:111111111111:alarm:lb-latency",
-  OldStateValue: "OK",
-  Trigger: {
-    MetricName: "TargetResponseTime",
-    Namespace: "AWS/ApplicationELB",
-    StatisticType: "Statistic",
-    Statistic: "AVERAGE",
-    Unit: null,
-    Dimensions: [{ value: "app/lb/12343464af00accc", name: "LoadBalancer" }],
-    Period: 60,
-    EvaluationPeriods: 2,
-    ComparisonOperator: "GreaterThanThreshold",
-    Threshold: 1.0,
-    TreatMissingData: "- TreatMissingData: missing",
-    EvaluateLowSampleCountPercentile: "",
-  },
-};

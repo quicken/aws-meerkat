@@ -8,6 +8,7 @@ import { GitHub } from "./lib/GitHub";
 import { Util } from "./lib/Util";
 
 const REGION = process.env.REGION || "";
+const DYNAMO_ENDPOINT = process.env.DYNAMO_ENDPOINT;
 const DB_TABLE = process.env.DB_TABLE || "devops-pipeline-monitor";
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || "";
 const DISCORD_AVATAR = process.env.DISCORD_AVATAR || "";
@@ -75,7 +76,10 @@ export const handler: SNSHandler = async (
 
   const executionId = pipeEvent.detail["execution-id"];
 
-  const dynamo = new DynamoDBClient({ region: REGION });
+  const dynamo = new DynamoDBClient({
+    region: REGION,
+    endpoint: DYNAMO_ENDPOINT,
+  });
   const pipelog = new PipeLog(DB_TABLE, codeProvider);
 
   await pipelog.load(executionId, dynamo);
