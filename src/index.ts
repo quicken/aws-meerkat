@@ -21,7 +21,6 @@ export const handler: SNSHandler = async (
   context?: Context
 ) => {
   console.log("v1.1.0");
-  console.log(handler);
 
   const discord = new Discord();
 

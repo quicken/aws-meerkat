@@ -1,20 +1,31 @@
 import "dotenv/config";
+import { Util, SimpleHttpResponse } from "./Util";
+import { BITBUCKET_GET_COMMIT_RESPONSE } from "./TestSamples";
 import { BitBucket } from "./BitBucket";
 
+jest.mock("./Util");
+
 const BITBUCKET = {
-  username: process.env.GIT_USERNAME || "",
-  password: process.env.GIT_PASSWORD || "",
-  repo: process.env.TEST_BITBUCKET_REPO || "",
-  commitid: process.env.TEST_BITBUCKET_COMMIT || "",
-  author: process.env.TEST_BITBUCKET_AUTHOR || "",
+  username: "",
+  password: "",
+  repo: "",
+  commitid: "",
+  author: "",
 };
 
 test("fetch-commit", async () => {
-  const bitbucket = new BitBucket(BITBUCKET.username, BITBUCKET.password);
+  /* Mock calling the bitbucket API. */
+  Util.callEndpoint = jest.fn().mockReturnValue(
+    new Promise<SimpleHttpResponse<any>>((resolve, reject) => {
+      resolve({ statuscode: 200, body: BITBUCKET_GET_COMMIT_RESPONSE });
+    })
+  );
 
+  const bitbucket = new BitBucket(BITBUCKET.username, BITBUCKET.password);
   const commit = await bitbucket.fetchCommit(
     BITBUCKET.repo,
     BITBUCKET.commitid
   );
-  expect(commit.author).toBe(BITBUCKET.author);
+
+  expect(commit.author).toBe("Marcel Scherzet <mscherzer@gmail.com>");
 });
