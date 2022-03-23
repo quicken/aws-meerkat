@@ -1,0 +1,5 @@
+{                                                                                                                                             "out": "docs/sdk",
+  "entryPointStrategy": "expand",
+  "entryPoints": ["./src"],
+  "plugin": "typedoc-plugin-markdown"
+}
