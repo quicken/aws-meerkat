@@ -43,7 +43,7 @@ export class BitBucket {
       },
     };
 
-    let response = await Util.callEndpoint(options, "");
+    const response = await Util.callEndpoint<any>(options, "");
 
     return {
       id: commitId,
