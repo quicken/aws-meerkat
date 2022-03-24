@@ -1,14 +1,14 @@
 import "dotenv/config";
-import { PipeLog } from "./PipeLog";
-import { BitBucket } from "./BitBucket";
-import { GitHub } from "./GitHub";
-import { CommitType } from "../types";
+import { PipeLog } from "../../src/lib/PipeLog";
+import { BitBucket } from "../../src/lib/BitBucket";
+import { GitHub } from "../../src/lib/GitHub";
+import { CommitType } from "../../src/types";
 import {
   PIPELINE_SOURCE_ACTION_BITBUCKET,
   PIPELINE_SOURCE_ACTION_GITHUB,
 } from "./TestSamples";
 
-jest.mock("./BitBucket", () => {
+jest.mock("../../src/lib/BitBucket", () => {
   return {
     BitBucket: jest.fn().mockImplementation(() => {
       return {
@@ -28,7 +28,7 @@ jest.mock("./BitBucket", () => {
   };
 });
 
-jest.mock("./GitHub", () => {
+jest.mock("../../src/lib/GitHub", () => {
   return {
     GitHub: jest.fn().mockImplementation(() => {
       return {

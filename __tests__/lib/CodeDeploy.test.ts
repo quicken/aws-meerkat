@@ -1,8 +1,8 @@
 import "dotenv/config";
-import { Util } from "./Util";
+import { Util } from "../../src/lib/Util";
 import { STSClient } from "@aws-sdk/client-sts";
 import { CodeDeployClient } from "@aws-sdk/client-codedeploy";
-import { CodeDeploy } from "./CodeDeploy";
+import { CodeDeploy } from "../../src/lib/CodeDeploy";
 
 const REGION = process.env.REGION || "";
 const DEPLOY_ARN = process.env.DEPLOY_ARN || "";

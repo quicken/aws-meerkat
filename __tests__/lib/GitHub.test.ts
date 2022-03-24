@@ -1,9 +1,9 @@
 import "dotenv/config";
-import { Util, SimpleHttpResponse } from "./Util";
+import { Util, SimpleHttpResponse } from "../../src/lib/Util";
 import { GITHUB_GET_COMMIT_RESPONSE } from "./TestSamples";
-import { GitHub } from "./GitHub";
+import { GitHub } from "../../src/lib/GitHub";
 
-jest.mock("./Util");
+jest.mock("../../src/lib/Util");
 
 const GITHUB = {
   username: "",

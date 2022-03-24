@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { Util } from "./Util";
+import { Util } from "../../src/lib/Util";
 process.env;
 test("deploy_arn_env_filters", async () => {
   const mock = {

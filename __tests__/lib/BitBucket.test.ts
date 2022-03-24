@@ -1,9 +1,9 @@
 import "dotenv/config";
-import { Util, SimpleHttpResponse } from "./Util";
+import { Util, SimpleHttpResponse } from "../../src/lib/Util";
 import { BITBUCKET_GET_COMMIT_RESPONSE } from "./TestSamples";
-import { BitBucket } from "./BitBucket";
+import { BitBucket } from "../../src/lib/BitBucket";
 
-jest.mock("./Util");
+jest.mock("../../src/lib/Util");
 
 const BITBUCKET = {
   username: "",

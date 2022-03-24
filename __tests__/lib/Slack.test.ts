@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { Slack } from "./Slack";
+import { Slack } from "../../src/lib/Slack";
 
 const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK || "";
 

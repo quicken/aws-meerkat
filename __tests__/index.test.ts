@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { SNSEvent, Context } from "aws-lambda";
-import { handler as lambdaHandler } from "./index";
+import { handler as lambdaHandler } from "../src/index";
 import {
   PIPELINE_SUCCESS_EVENT,
   SNS_ALARM_MESSAGE,
@@ -33,14 +33,18 @@ test("run-lambda", async () => {
   expect(1).toBe(1);
 });
 
+test("pipeline-source-action", async () => {
+  await runLambdaWithSNS("Testing", PIPELINE_SOURCE_ACTION_GITHUB);
+  expect(1).toBe(1);
+});
+
 test("pipeline-success-event", async () => {
-  //await runLambdaWithSNS("Testing", PIPELINE_SUCCESS_EVENT);
+  // await runLambdaWithSNS("Testing", PIPELINE_SUCCESS_EVENT);
   expect(1).toBe(1);
 });
 
 test("alarm-failed-event", async () => {
-  return;
-  await runLambdaWithSNS("Testing", SNS_ALARM_MESSAGE);
+  // await runLambdaWithSNS("Testing", SNS_ALARM_MESSAGE);
   expect(1).toBe(1);
 });
 

@@ -1,12 +1,12 @@
 import "dotenv/config";
-import { Discord } from "./Discord";
+import { Discord } from "../../src/lib/Discord";
 import {
   CommitType,
   LogEntryType,
   BuildLogEntryType,
   DeployLogEntryType,
   AlarmType,
-} from "../types";
+} from "../../src/types";
 
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || "";
 const DISCORD_AVATAR = process.env.DISCORD_AVATAR || "";

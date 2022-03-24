@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { CodeBuildClient } from "@aws-sdk/client-codebuild";
-import { CodeBuild } from "./CodeBuild";
+import { CodeBuild } from "../../src/lib/CodeBuild";
 
 const REGION = process.env.REGION || "";
 const TEST_CODE_BUILD_ID = process.env.TEST_CODE_BUILD_ID || "";

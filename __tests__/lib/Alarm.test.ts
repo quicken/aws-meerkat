@@ -1,4 +1,4 @@
-import { Util } from "./Util";
+import { Util } from "../../src/lib/Util";
 
 test("parse-sns-alarm-message", async () => {
   const isAlarmMessage = Util.isAlarmMessage(snsAlarmMessage);

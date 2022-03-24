@@ -1,5 +1,9 @@
 import "dotenv/config";
 
+test("mock-test", async () => {
+  expect(true).toBe(true);
+});
+
 export const PIPELINE_SUCCESS_EVENT = {
   account: "111111111111",
   detailType: "CodePipeline Pipeline Execution State Change",
