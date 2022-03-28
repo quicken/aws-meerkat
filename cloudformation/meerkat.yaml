@@ -112,7 +112,7 @@ Resources:
                 AWS:SourceAccount: !Ref AWS::AccountId
           - Sid: CrossAccountCloudWatchAlarms
             Effect: Allow
-            Principle:
+            Principal:
               AWS: "*"
             Action: "SNS:Publish"
             Resource: !Ref SnsTopic
