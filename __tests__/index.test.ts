@@ -7,7 +7,20 @@ import {
   PIPELINE_SOURCE_ACTION_GITHUB,
 } from "./lib/TestSamples";
 
+const RUN_INTEGRATION_TESTS = false;
+beforeAll(() => {
+  if (!RUN_INTEGRATION_TESTS) {
+    console.info(
+      "\x1b[33m%s\x1b[0m",
+      "INTEGRATION_TESTS are disabled. Skipping all integration tests."
+    );
+  }
+  return;
+});
+
 test("run-lambda", async () => {
+  if (!RUN_INTEGRATION_TESTS) return;
+
   const fakeEvent = {
     detail: {
       pipeline: "My Awesome Pipeline",
@@ -18,7 +31,7 @@ test("run-lambda", async () => {
         provider: "CodeStarSourceConnection",
       },
       "execution-result": {
-        "external-execution-url": `https://blahblah/foo/bar?Commit=3fcdaa5ac3e29c79008319ede6c092643f204af0&FullRepositoryId=youraccount/yourproject.git`,
+        "external-execution-url": `https://github.com/quicken/aws-meerkat/commit/2d33f3db9215f9368cbe4f71049a4c511236b4e3`,
       },
     },
   };
@@ -34,16 +47,20 @@ test("run-lambda", async () => {
 });
 
 test("pipeline-source-action", async () => {
+  if (!RUN_INTEGRATION_TESTS) return;
+
   await runLambdaWithSNS("Testing", PIPELINE_SOURCE_ACTION_GITHUB);
   expect(1).toBe(1);
 });
 
 test("pipeline-success-event", async () => {
+  if (!RUN_INTEGRATION_TESTS) return;
   // await runLambdaWithSNS("Testing", PIPELINE_SUCCESS_EVENT);
   expect(1).toBe(1);
 });
 
 test("alarm-failed-event", async () => {
+  if (!RUN_INTEGRATION_TESTS) return;
   // await runLambdaWithSNS("Testing", SNS_ALARM_MESSAGE);
   expect(1).toBe(1);
 });
