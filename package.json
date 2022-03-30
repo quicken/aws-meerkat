@@ -21,6 +21,7 @@
     "@types/node": "^16.9.6",
     "@typescript-eslint/eslint-plugin": "^4.31.2",
     "@typescript-eslint/parser": "^4.31.2",
+    "aws-sdk-client-mock": "^0.6.2",
     "dotenv": "^10.0.0",
     "esbuild": "^0.12.29",
     "eslint": "^7.32.0",

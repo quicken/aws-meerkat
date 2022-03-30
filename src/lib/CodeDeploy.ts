@@ -9,6 +9,12 @@ import {
 import { InstanceDiagnosticType, DiagnosticType } from "../types";
 
 export class CodeDeploy {
+  codeDeploy: CodeDeployClient;
+
+  constructor(codeDeploy: CodeDeployClient) {
+    this.codeDeploy = codeDeploy;
+  }
+
   /**
    * Returns the failure reason for the first failed life cycle event of each instance that
    * is a target for this deployment. If an instance has no failures the
@@ -21,9 +27,8 @@ export class CodeDeploy {
    * @returns An array of instances to which code was deployed. If deployment fails for an instance the diagnostic
    * property will contain the details from the very first life cycle event that failed on that instance.
    */
-  public static deployDetails = async (
-    deploymentId: string,
-    codeDeploy: CodeDeployClient
+  deployDetails = async (
+    deploymentId: string
   ): Promise<(InstanceDiagnosticType | undefined)[]> => {
     /* Find EC2 instances for this deployment*/
     const listDeploymentTargetsInput: ListDeploymentTargetsInput = {
@@ -33,7 +38,7 @@ export class CodeDeploy {
     const listDeploymentTargetsCommand = new ListDeploymentTargetsCommand(
       listDeploymentTargetsInput
     );
-    const deploymentTargets = await codeDeploy.send(
+    const deploymentTargets = await this.codeDeploy.send(
       listDeploymentTargetsCommand
     );
 
@@ -44,7 +49,7 @@ export class CodeDeploy {
     };
 
     const command = new BatchGetDeploymentTargetsCommand(param);
-    const targets = await codeDeploy.send(command);
+    const targets = await this.codeDeploy.send(command);
 
     if (!targets.deploymentTargets) return [];
 
