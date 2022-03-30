@@ -79,11 +79,14 @@ export type CodePipelineExecutionEvent = CodePipelineEvent & {
       "trigger-type": "Webhook";
       "trigger-detail": string;
     };
-    state: "STARTED" | "SUCCEEDED";
+    state: "STARTED" | "SUCCEEDED" | "FAILED";
     version: 16.0;
   };
   additionalAttributes: {
     sourceActions?: any[];
+    failedActionCount?: number;
+    failedActions?: CodePipelineFailedAction[];
+    failedStage?: string;
   };
 };
 

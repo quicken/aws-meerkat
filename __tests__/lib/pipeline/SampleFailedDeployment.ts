@@ -5,7 +5,8 @@ import {
 } from "../../../src/types";
 
 /**
- * This file contains a collection of event data captured from a Failed AWS Code Pipeline Execution.
+ * This file contains a collection of event data captured from a failed AWS Code Pipeline Execution with
+ * failed AWS Code Deploy Actions.
  *
  * The pipeline contains three stages.
  * 1) Checkout Source Code.

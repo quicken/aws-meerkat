@@ -1,7 +1,7 @@
 import { URL } from "url";
 import { BitBucket } from "./BitBucket";
 import { GitHub } from "./GitHub";
-import { CommitType, LogEntryType } from "../types";
+import { CommitType, LogEntryType, CodePipelineActionEvent } from "../types";
 
 import {
   DynamoDBClient,
@@ -157,19 +157,20 @@ export class PipeLog {
    * @param {'*'} message The SNS message which was received from the pipeline.
    * @returns
    */
-  handlePipelineAction = async (message: any): Promise<void> => {
-    if (!message.detailType.startsWith("CodePipeline Action Execution")) return;
-    this.name = message.detail.pipeline;
+  handlePipelineAction = async (
+    event: CodePipelineActionEvent
+  ): Promise<void> => {
+    this.name = event.detail.pipeline;
 
-    switch (message.detail.type.provider) {
+    switch (event.detail.type.provider) {
       case "CodeStarSourceConnection":
-        await this.handleCodestarEvent(message);
+        await this.handleCodestarActionEvent(event);
         break;
       case "CodeBuild":
-        this.handleCodeBuildEvent(message);
+        this.handleCodeBuildActionEvent(event);
         break;
       case "CodeDeploy":
-        this.handleCodeDeployEvent(message);
+        this.handleCodeDeployActionEvent(event);
         break;
     }
   };
@@ -183,34 +184,42 @@ export class PipeLog {
    *
    * @param message
    */
-  private handleCodestarEvent = async (message: any) => {
-    if (
-      message.detail.stage === "Source" &&
-      message.detail.state === "SUCCEEDED"
-    ) {
-      /* Fetch usefull commit details from the repository hosting service (bitbucket). */
-      const url = new URL(
-        message.detail["execution-result"]["external-execution-url"]
-      );
-      const repo = url.searchParams.get("FullRepositoryId") || "";
-      const commitId = url.searchParams.get("Commit") || "";
-      try {
-        this.commit = await this._codeProvider.fetchCommit(repo, commitId);
-      } catch (e) {
-        console.log(e);
-      }
-    }
+  private handleCodestarActionEvent = async (
+    event: CodePipelineActionEvent
+  ) => {
+    if (event.detail.stage !== "Source") return;
 
-    if (message.detail.state === "FAILED") {
-      const checkout = {
-        id: "",
-        type: "checkout",
-        name: message.detail.action as string,
-        message: message.detail["execution-result"][
-          "external-execution-summary"
-        ] as string,
-      };
-      this._failed.push(checkout);
+    switch (event.detail.state) {
+      case "SUCCEEDED": {
+        if (!event.detail["execution-result"]) {
+          throw new Error(
+            "handleCodestarActionEvent is trying to process an event without execution-results."
+          );
+        }
+
+        /* Fetch usefull commit details from the repository hosting service (github/bitbucket/etc.). */
+        const url = new URL(
+          event.detail["execution-result"]["external-execution-url"]
+        );
+        const repo = url.searchParams.get("FullRepositoryId") || "";
+        const commitId = url.searchParams.get("Commit") || "";
+
+        this.commit = await this._codeProvider.fetchCommit(repo, commitId);
+
+        break;
+      }
+
+      case "FAILED": {
+        const checkout = {
+          id: "",
+          type: "checkout",
+          name: event.detail.action,
+          message: event.detail["execution-result"]
+            ? event.detail["execution-result"]["external-execution-summary"]
+            : "",
+        };
+        this._failed.push(checkout);
+      }
     }
   };
 
@@ -219,19 +228,28 @@ export class PipeLog {
    * @param message
    * @returns
    */
-  private handleCodeBuildEvent = async (message: any) => {
+  private handleCodeBuildActionEvent = async (
+    event: CodePipelineActionEvent
+  ) => {
     if (
-      message.detail.state === "FAILED" &&
-      message.detail.type.provider === "CodeBuild"
+      event.detail.type.provider !== "CodeBuild" &&
+      event.detail.state !== "FAILED"
     ) {
-      const build: LogEntryType = {
-        id: message.detail["execution-result"]["external-execution-id"],
-        type: "build",
-        name: message.detail.action,
-        link: message.detail["execution-result"]["external-execution-url"],
-      };
-      this._failed.push(build);
+      return;
     }
+
+    const build: LogEntryType = {
+      id: event.detail["execution-result"]
+        ? event.detail["execution-result"]["external-execution-id"]
+        : "",
+      type: "build",
+      name: event.detail.action,
+      link: event.detail["execution-result"]
+        ? event.detail["execution-result"]["external-execution-url"]
+        : "",
+    };
+
+    this._failed.push(build);
   };
 
   /**
@@ -239,37 +257,31 @@ export class PipeLog {
    * @param message
    * @returns
    */
-  private handleCodeDeployEvent = async (message: any) => {
+  private handleCodeDeployActionEvent = async (
+    event: CodePipelineActionEvent
+  ) => {
     /* Process a Deployment Failed Action */
     if (
-      message.detail.state === "FAILED" &&
-      message.detail.type.provider === "CodeDeploy"
+      event.detail.type.provider !== "CodeDeploy" &&
+      event.detail.state !== "FAILED"
     ) {
-      const deployId = message.detail["execution-result"].hasOwnProperty(
-        "external-execution-id"
-      )
-        ? message.detail["execution-result"]["external-execution-id"]
-        : "";
-      const summary = message.detail["execution-result"].hasOwnProperty(
-        "external-execution-summary"
-      )
-        ? message.detail["execution-result"]["external-execution-summary"]
-        : "";
-      const link = message.detail["execution-result"].hasOwnProperty(
-        "external-execution-url"
-      )
-        ? message.detail["execution-result"]["external-execution-url"]
-        : "";
-
-      const deploy: LogEntryType = {
-        id: deployId,
-        type: "deploy",
-        name: message.detail.action,
-        summary: summary,
-        link: link,
-      };
-
-      this._failed.push(deploy);
+      return;
     }
+
+    const deploy: LogEntryType = {
+      id: event.detail["execution-result"]
+        ? event.detail["execution-result"]["external-execution-id"]
+        : "",
+      type: "deploy",
+      name: event.detail.action,
+      summary: event.detail["execution-result"]
+        ? event.detail["execution-result"]["external-execution-summary"]
+        : "",
+      link: event.detail["execution-result"]
+        ? event.detail["execution-result"]["external-execution-url"]
+        : "",
+    };
+
+    this._failed.push(deploy);
   };
 }

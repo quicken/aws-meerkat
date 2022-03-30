@@ -2,11 +2,14 @@ import "dotenv/config";
 import { PipeLog } from "../../src/lib/PipeLog";
 import { BitBucket } from "../../src/lib/BitBucket";
 import { GitHub } from "../../src/lib/GitHub";
-import { CommitType } from "../../src/types";
+import { CommitType, LogEntryType } from "../../src/types";
+import { PIPELINE_STAGE_BUILD_ACTION_BUILD_FAILED } from "./pipeline/SampleFailedBuild";
+import { PIPELINE_STAGE_DEPLOY_ACTION_DEPLOY_GROUP_RED_FAILED } from "./pipeline/SampleFailedDeployment";
+
 import {
   PIPELINE_SOURCE_ACTION_BITBUCKET,
   PIPELINE_SOURCE_ACTION_GITHUB,
-} from "./TestSamples";
+} from "./pipeline/SampleSourceEvent";
 
 jest.mock("../../src/lib/BitBucket", () => {
   return {
@@ -51,7 +54,7 @@ jest.mock("../../src/lib/GitHub", () => {
 
 const DB_TABLE = process.env.DB_TABLE || "devops-pipeline-monitor";
 
-test("action-commit-bitbucket", async () => {
+test("handleCodeStarConnection_BITBUCKET_succeeded", async () => {
   const bitBucket = new BitBucket("", "");
   const pipelog = new PipeLog(DB_TABLE, bitBucket);
   await pipelog.handlePipelineAction(PIPELINE_SOURCE_ACTION_BITBUCKET);
@@ -59,10 +62,50 @@ test("action-commit-bitbucket", async () => {
   expect(pipelog.commit.author).toBe("Marcel Scherzet <mscherzer@gmail.com>");
 });
 
-test("action-commit-github", async () => {
+test("handleCodeStarConnection_GITHUB_succeeded", async () => {
   const gitHub = new GitHub("", "");
   const pipelog = new PipeLog(DB_TABLE, gitHub);
   await pipelog.handlePipelineAction(PIPELINE_SOURCE_ACTION_GITHUB);
 
   expect(pipelog.commit.author).toBe("marcel <mscherzer@gmail.com>");
+});
+
+test("handleCodeBuildEvent_failed", async () => {
+  const gitHub = new GitHub("", "");
+  const pipelog = new PipeLog(DB_TABLE, gitHub);
+  await pipelog.handlePipelineAction(PIPELINE_STAGE_BUILD_ACTION_BUILD_FAILED);
+
+  const FAILED = pipelog.failed
+    ? pipelog.failed
+    : ({ id: "", type: "unknown", name: "" } as LogEntryType);
+
+  expect(FAILED.id).toBe(
+    "meerkat-testing:56be3e40-853a-4797-9455-f88ce291fdad"
+  );
+  expect(FAILED.name).toBe("Build");
+  expect(FAILED.type).toBe("build");
+  expect(FAILED.summary).toBe(undefined);
+  expect(FAILED.link).toBe(
+    "https://console.aws.amazon.com/codebuild/home?region=ap-southeast-2#/builds/meerkat-testing:56be3e40-853a-4797-9455-f88ce291fdad/view/new"
+  );
+});
+
+test("handleCodeDeployActionEvent_failed", async () => {
+  const gitHub = new GitHub("", "");
+  const pipelog = new PipeLog(DB_TABLE, gitHub);
+  await pipelog.handlePipelineAction(
+    PIPELINE_STAGE_DEPLOY_ACTION_DEPLOY_GROUP_RED_FAILED
+  );
+
+  const FAILED = pipelog.failed
+    ? pipelog.failed
+    : ({ id: "", type: "unknown", name: "" } as LogEntryType);
+
+  expect(FAILED.id).toBe("d-C3XYEM1QF");
+  expect(FAILED.name).toBe("Deploy-GROUP_RED");
+  expect(FAILED.type).toBe("deploy");
+  expect(FAILED.summary).toBe("Deployment d-C3XYEM1QF failed");
+  expect(FAILED.link).toBe(
+    "https://console.aws.amazon.com/codedeploy/home?region=ap-southeast-2#/deployments/d-C3XYEM1QF"
+  );
 });

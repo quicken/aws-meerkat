@@ -6,6 +6,7 @@ import { Discord } from "./lib/Discord";
 import { BitBucket } from "./lib/BitBucket";
 import { GitHub } from "./lib/GitHub";
 import { Util } from "./lib/Util";
+import { CodePipelineActionEvent } from "./types";
 
 const REGION = process.env.REGION || "";
 const DYNAMO_ENDPOINT = process.env.DYNAMO_ENDPOINT;
@@ -84,7 +85,10 @@ export const handler: SNSHandler = async (
 
   await pipelog.load(executionId, dynamo);
 
-  await pipelog.handlePipelineAction(pipeEvent);
+  if (pipeEvent.detailType.startsWith("CodePipeline Action Execution")) {
+    const pipelineActionEvent = pipeEvent as CodePipelineActionEvent;
+    await pipelog.handlePipelineAction(pipelineActionEvent);
+  }
 
   if (!pipelog.name) pipelog.name = pipeEvent.detail.pipeline;
 
