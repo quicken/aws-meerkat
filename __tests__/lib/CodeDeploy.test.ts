@@ -1,6 +1,3 @@
-import "dotenv/config";
-import { Util } from "../../src/lib/Util";
-import { STSClient } from "@aws-sdk/client-sts";
 import {
   CodeDeployClient,
   BatchGetDeploymentTargetsCommand,
@@ -17,42 +14,22 @@ import { mockClient } from "aws-sdk-client-mock";
  * More info on mocking AWS SDK Calls:
  * https://aws.amazon.com/blogs/developer/mocking-modular-aws-sdk-for-javascript-v3-in-unit-tests/
  */
-
 const codeDeployMock = mockClient(CodeDeployClient) as any;
-
-const REGION = process.env.REGION || "";
-const DEPLOY_ARN = process.env.DEPLOY_ARN || "";
-const TEST_CODE_DEPLOY_ID = process.env.TEST_CODE_DEPLOY_ID || "";
 
 beforeEach(() => {
   jest.clearAllMocks();
   codeDeployMock.reset();
 });
 
-test("test-disabled", async () => {
+test("fetch-deployment", async () => {
   codeDeployMock.on(ListDeploymentTargetsCommand).resolves(AWS_LIST_TARGETS);
   codeDeployMock
     .on(BatchGetDeploymentTargetsCommand)
     .resolves(AWS_BATCH_TARGETS);
 
   const codeDeploy = new CodeDeploy(codeDeployMock);
-  const foo = await codeDeploy.deployDetails("dummy-deployment-id");
-  console.log(foo);
-  expect(1).toBe(1);
+  const detail = await codeDeploy.deployDetails("dummy-deployment-id");
+
+  expect(detail.length).toBe(2);
+  expect(detail[0]?.instanceid).toBe("i-03ffb163f3a80ec87");
 });
-
-/*
-test("fetch-deployment", async () => {
-  const stsClient = new STSClient({ region: REGION });
-  const credentials = await Util.fetchCredentials(stsClient, DEPLOY_ARN);
-
-  const cdClient = new CodeDeployClient({
-    region: REGION,
-    credentials: credentials,
-  });
-
-  const data = await CodeDeploy.deployDetails(TEST_CODE_DEPLOY_ID, cdClient);
-  console.log(data);
-  expect(1).toBe(1);
-});
-*/
