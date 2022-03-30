@@ -12,6 +12,8 @@ import {
  * 2) Building the Application with AWS Code Build.
  * 3) Deploying using AWS Code Deploy to two different deployment groups.
 
+NOTE: Some events may be missing. The order of definitions is the order in which events were received.
+It appears as if events can be processed out of order.
 /**
  *
  */
