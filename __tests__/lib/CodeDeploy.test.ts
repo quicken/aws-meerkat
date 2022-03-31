@@ -3,12 +3,10 @@ import {
   BatchGetDeploymentTargetsCommand,
   ListDeploymentTargetsCommand,
 } from "@aws-sdk/client-codedeploy";
-import { CodeDeploy } from "../../src/lib/CodeDeploy";
-import {
-  AWS_LIST_TARGETS,
-  AWS_BATCH_TARGETS,
-} from "../lib/pipeline/SampleBatchGetDeploymentTargets";
 import { mockClient } from "aws-sdk-client-mock";
+
+import { CodeDeploy } from "../../src/lib/CodeDeploy";
+import { AWS_LIST_TARGETS, AWS_BATCH_TARGETS } from "../sample/aws/codeDeploy";
 
 /**
  * More info on mocking AWS SDK Calls:

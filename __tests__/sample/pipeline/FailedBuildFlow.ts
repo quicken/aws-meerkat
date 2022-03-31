@@ -16,15 +16,7 @@ import {
 NOTE: Some events may be missing. The order of definitions is the order in which events were received.
 It appears as if events can be processed out of order.
 
-/**
- *
  */
-test("mock-test", async () => {
-  expect(true).toBe(true);
-});
-test("mock-test", async () => {
-  expect(true).toBe(true);
-});
 
 export const PIPELINE_STAGE_BUILD_ACTION_BUILD_STARTED: CodePipelineActionEvent =
   {

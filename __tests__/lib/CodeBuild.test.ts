@@ -1,16 +1,25 @@
-import "dotenv/config";
-import { CodeBuildClient } from "@aws-sdk/client-codebuild";
-import { CodeBuild } from "../../src/lib/CodeBuild";
+import {
+  CodeBuildClient,
+  BatchGetBuildsCommand,
+} from "@aws-sdk/client-codebuild";
+import { mockClient } from "aws-sdk-client-mock";
 
-const REGION = process.env.REGION || "";
-const TEST_CODE_BUILD_ID = process.env.TEST_CODE_BUILD_ID || "";
+import { CodeBuild } from "../../src/lib/CodeBuild";
+import { AWS_BACTH_BUILDS } from "../sample/aws/codeBuild";
+
+const codeBuildMock = mockClient(CodeBuildClient) as any;
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  codeBuildMock.reset();
+});
 
 test("fetch-build", async () => {
-  const cbClient = new CodeBuildClient({
-    region: REGION,
-  });
+  codeBuildMock.on(BatchGetBuildsCommand).resolves(AWS_BACTH_BUILDS);
 
-  const data = await CodeBuild.fetchBuildLogUrl(TEST_CODE_BUILD_ID, cbClient);
-  console.log(data);
-  expect(1).toBe(1);
+  const codeBuild = new CodeBuild(codeBuildMock);
+  const buildLogUrl = await codeBuild.fetchBuildLogUrl("mock");
+  expect(buildLogUrl).toBe(
+    "https://console.aws.amazon.com/cloudwatch/home?region=ap-southeast-2#logEvent:group=/aws/codebuild/meerkat;stream=56be3e40-853a-1111-2222-f88ce291fdad"
+  );
 });

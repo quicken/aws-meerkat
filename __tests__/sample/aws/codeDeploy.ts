@@ -1,7 +1,3 @@
-test("mock-test", async () => {
-  expect(true).toBe(true);
-});
-
 export const AWS_LIST_TARGETS = {
   targetIds: ["i-0076ebeb196703200", "i-03ffb163f3a80ec87"],
 };

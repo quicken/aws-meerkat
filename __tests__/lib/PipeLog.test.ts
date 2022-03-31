@@ -1,15 +1,20 @@
-import "dotenv/config";
+import { DynamoDBClient, GetItemCommand } from "@aws-sdk/client-dynamodb";
+import { mockClient } from "aws-sdk-client-mock";
+
 import { PipeLog } from "../../src/lib/PipeLog";
 import { BitBucket } from "../../src/lib/BitBucket";
 import { GitHub } from "../../src/lib/GitHub";
 import { CommitType, LogEntryType } from "../../src/types";
-import { PIPELINE_STAGE_BUILD_ACTION_BUILD_FAILED } from "./pipeline/SampleFailedBuild";
-import { PIPELINE_STAGE_DEPLOY_ACTION_DEPLOY_GROUP_RED_FAILED } from "./pipeline/SampleFailedDeployment";
-
+import { PIPELINE_STAGE_BUILD_ACTION_BUILD_FAILED } from "../sample/pipeline/FailedBuildFlow";
+import { PIPELINE_STAGE_DEPLOY_ACTION_DEPLOY_GROUP_RED_FAILED } from "../sample/pipeline/FailedDeploymentFlow";
 import {
   PIPELINE_SOURCE_ACTION_BITBUCKET,
   PIPELINE_SOURCE_ACTION_GITHUB,
-} from "./pipeline/SampleSourceEvent";
+} from "../sample/pipeline/SourceEvent";
+
+import { ITEM_FAILED_DEPLOYMENT_PIPE_LOG } from "../sample/aws/dynamoDb";
+
+const dynamoDbMock = mockClient(DynamoDBClient) as any;
 
 jest.mock("../../src/lib/BitBucket", () => {
   return {
@@ -50,6 +55,10 @@ jest.mock("../../src/lib/GitHub", () => {
       };
     }),
   };
+});
+
+beforeEach(() => {
+  dynamoDbMock.reset();
 });
 
 const DB_TABLE = process.env.DB_TABLE || "devops-pipeline-monitor";
@@ -162,4 +171,15 @@ test("handleCodeDeployActionEvent_failed", async () => {
   expect(FAILED.link).toBe(
     "https://console.aws.amazon.com/codedeploy/home?region=ap-southeast-2#/deployments/d-C3XYEM1QF"
   );
+});
+
+test("loading", async () => {
+  dynamoDbMock.on(GetItemCommand).resolves(ITEM_FAILED_DEPLOYMENT_PIPE_LOG);
+
+  const gitHub = new GitHub("", "");
+  const pipelog = new PipeLog(DB_TABLE, gitHub);
+  await pipelog.load("mock", dynamoDbMock);
+  expect(pipelog.isFailed).toBe(true);
+  expect(pipelog.failed?.name).toBe("Deploy-RED");
+  expect(pipelog.failed?.type).toBe("deploy");
 });
