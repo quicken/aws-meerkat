@@ -88,3 +88,34 @@ export const ITEM_FAILED_DEPLOYMENT_PIPE_LOG = {
     },
   },
 };
+
+export const ITEM_SUCCESSFULL_PIPE_LOG = {
+  executionId: {
+    S: "815a9f61-fe0e-47a6-942c-0d010d0dbada",
+  },
+  isNotified: {
+    BOOL: true,
+  },
+  failed: {
+    L: [],
+  },
+  name: {
+    S: "axcelerate-testing",
+  },
+  commit: {
+    M: {
+      summary: {
+        S: "Added some more documentation\n",
+      },
+      link: {
+        S: "https://api.bitbucket.org/2.0/repositories/project/name/commit/f7b0a36de85c68fb17d6bf7a453060e3e1c9da66",
+      },
+      id: {
+        S: "18e57819e68813fc585368ebd8163ad5e2a3163e",
+      },
+      author: {
+        S: "Marcel Scherzer <spam@spamn.com>",
+      },
+    },
+  },
+};

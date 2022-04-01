@@ -8,7 +8,10 @@ import {
   PipelineNotification,
 } from "../src/types/common";
 import { BitBucket } from "../src/lib/BitBucket";
-import { ITEM_FAILED_DEPLOYMENT_PIPE_LOG } from "./sample/aws/dynamoDb";
+import {
+  ITEM_FAILED_DEPLOYMENT_PIPE_LOG,
+  ITEM_SUCCESSFULL_PIPE_LOG,
+} from "./sample/aws/dynamoDb";
 import { CLOUDWATCH_ALARM } from "./sample/aws/cloudwatch";
 import { PIPELINE_EXECUTION_SUCCEEDED } from "./sample/pipeline/SuccessFlowEvents";
 
@@ -85,7 +88,7 @@ test("handle_cloudwatch_alarm_message", async () => {
 });
 
 test("handle_code_pipeline_message_success", async () => {
-  dynamoDbMock.on(GetItemCommand).resolves(null);
+  dynamoDbMock.on(GetItemCommand).resolves(ITEM_SUCCESSFULL_PIPE_LOG);
   const meerkat = new Meerkat(dynamoDbMock, bitbucket, CHAT_SERVICE);
   const rawMessage = {
     isJson: true,

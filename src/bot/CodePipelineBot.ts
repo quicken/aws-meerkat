@@ -67,6 +67,8 @@ export class CodePipelineBot extends Bot {
     const codePipelineEvent = rawMessage.body as CodePipelineEvent;
     const eventType = CodePipelineBot.detectEventType(codePipelineEvent);
 
+    await this.pipeLog.load(codePipelineEvent.detail["execution-id"]);
+
     switch (eventType) {
       case "CodePipelineExecutionEvent":
         return this.handleExecutionEvent(
