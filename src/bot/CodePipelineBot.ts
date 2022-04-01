@@ -4,7 +4,7 @@ import {
   CodePipelineExecutionEvent,
   CodePipelineActionEvent,
   PipelineNotification,
-  LogEntryType,
+  LogEntry,
   PipelineCodeBuildFailure,
   PipelineCodeDeployFailure,
   RawMessage,
@@ -115,7 +115,7 @@ export class CodePipelineBot extends Bot {
   };
 
   private fetchCodeBuildInfo = async (
-    logEntry: LogEntryType
+    logEntry: LogEntry
   ): Promise<PipelineCodeBuildFailure> => {
     return {
       type: "CodeBuild",
@@ -124,7 +124,7 @@ export class CodePipelineBot extends Bot {
   };
 
   private fetchCodeDeployInfo = async (
-    logEntry: LogEntryType
+    logEntry: LogEntry
   ): Promise<PipelineCodeDeployFailure> => {
     return {
       type: "CodeDeploy",

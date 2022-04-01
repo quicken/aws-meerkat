@@ -4,7 +4,7 @@ import { mockClient } from "aws-sdk-client-mock";
 import { PipeLog } from "../../src/lib/PipeLog";
 import { BitBucket } from "../../src/lib/BitBucket";
 import { GitHub } from "../../src/lib/GitHub";
-import { Commit, LogEntryType } from "../../src/types";
+import { Commit, LogEntry } from "../../src/types";
 import { PIPELINE_STAGE_BUILD_ACTION_BUILD_FAILED } from "../sample/pipeline/FailedBuildFlow";
 import { PIPELINE_STAGE_DEPLOY_ACTION_DEPLOY_GROUP_RED_FAILED } from "../sample/pipeline/FailedDeploymentFlow";
 import {
@@ -140,7 +140,7 @@ test("handleCodeBuildEvent_failed", async () => {
 
   const FAILED = pipelog.failed
     ? pipelog.failed
-    : ({ id: "", type: "unknown", name: "" } as LogEntryType);
+    : ({ id: "", type: "unknown", name: "" } as LogEntry);
 
   expect(FAILED.id).toBe(
     "meerkat-testing:56be3e40-853a-4797-9455-f88ce291fdad"
@@ -162,7 +162,7 @@ test("handleCodeDeployActionEvent_failed", async () => {
 
   const FAILED = pipelog.failed
     ? pipelog.failed
-    : ({ id: "", type: "unknown", name: "" } as LogEntryType);
+    : ({ id: "", type: "unknown", name: "" } as LogEntry);
 
   expect(FAILED.id).toBe("d-C3XYEM1QF");
   expect(FAILED.name).toBe("Deploy-GROUP_RED");

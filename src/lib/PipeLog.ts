@@ -1,7 +1,7 @@
 import { URL } from "url";
 import { BitBucket } from "./BitBucket";
 import { GitHub } from "./GitHub";
-import { Commit, LogEntryType, CodePipelineActionEvent } from "../types";
+import { Commit, LogEntry, CodePipelineActionEvent } from "../types";
 
 import {
   DynamoDBClient,
@@ -47,7 +47,7 @@ export class PipeLog {
   private _dbTable: string;
 
   /** Array of failures, a failure has different properties depending on the type. */
-  private _failed: LogEntryType[];
+  private _failed: LogEntry[];
 
   /* The name of the DB table that stores pipelog data.*/
   private _codeProvider: BitBucket | GitHub;
@@ -103,7 +103,7 @@ export class PipeLog {
   }
 
   /** Returns the very first failure that occured in this pipeline process. */
-  get failed(): LogEntryType | null {
+  get failed(): LogEntry | null {
     if (this._failed.length === 0) return null;
     return this._failed[0];
   }
@@ -214,7 +214,7 @@ export class PipeLog {
       }
 
       case "FAILED": {
-        const checkout: LogEntryType = {
+        const checkout: LogEntry = {
           id: "",
           type: "checkout",
           name: event.detail.action,
@@ -244,7 +244,7 @@ export class PipeLog {
       return null;
     }
 
-    const build: LogEntryType = {
+    const build: LogEntry = {
       id: event.detail["execution-result"]
         ? event.detail["execution-result"]["external-execution-id"]
         : "",
@@ -273,7 +273,7 @@ export class PipeLog {
       return null;
     }
 
-    const deploy: LogEntryType = {
+    const deploy: LogEntry = {
       id: event.detail["execution-result"]
         ? event.detail["execution-result"]["external-execution-id"]
         : "",

@@ -11,7 +11,7 @@ export interface Commit {
   link: string;
 }
 
-export interface LogEntryType {
+export interface LogEntry {
   id: string;
   type: string;
   name: string;
@@ -20,13 +20,13 @@ export interface LogEntryType {
   summary?: string;
 }
 
-export interface BuildLogEntryType extends LogEntryType {
+export interface BuildLogEntry extends LogEntry {
   build: {
     logUrl: string;
   };
 }
 
-export interface DeployLogEntryType extends LogEntryType {
+export interface DeployLogEntry extends LogEntry {
   deploy: {
     targets: InstanceDiagnosticType[];
   };
