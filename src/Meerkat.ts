@@ -37,11 +37,7 @@ export class Meerkat {
 
   processSnsEvent = async (snsEvent: SNSEvent) => {
     const rawMessage = this.parseSnsEvent(snsEvent);
-    const notification = await this.handleMessage(rawMessage);
-    if (notification) {
-      const chat = this.chatFactory(this.chatService);
-      await chat.sendNotification(notification);
-    }
+    return await this.handleMessage(rawMessage);
   };
 
   /**
@@ -62,7 +58,13 @@ export class Meerkat {
    */
   handleMessage = async (rawMessage: RawMessage) => {
     const bot = await this.botFactory(rawMessage);
-    return bot.handleMessage(rawMessage);
+    const notification = await bot.handleMessage(rawMessage);
+    if (notification) {
+      const chat = this.chatFactory(this.chatService);
+      await chat.sendNotification(notification);
+      await bot.notificationSent();
+    }
+    return notification;
   };
 
   /**

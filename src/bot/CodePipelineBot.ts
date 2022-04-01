@@ -135,6 +135,14 @@ export class CodePipelineBot extends Bot {
   };
 
   /**
+   * Record that a notification has been sent for the active pipelog.
+   */
+  notificationSent = async () => {
+    this.pipeLog.isNotified = true;
+    this.pipeLog.save();
+  };
+
+  /**
    * Provides a mechanism to use the pipeline name and a naming convention for
    * environment variables to control the ARN that should
    * be used when calling the CODE Deploy SDK.
