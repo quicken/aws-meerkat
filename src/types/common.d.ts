@@ -64,7 +64,9 @@ export type RawMessage = {
  */
 export type SimpleNotification = {
   type: "SimpleNotification";
+  /** The notification subject text. */
   subject: string;
+  /** The notification message text. */
   message: string;
 };
 
@@ -117,8 +119,14 @@ export type PipelineCodeBuildFailure = {
 /** Extra information for troubleshooting pipeline failures caused by AWS Code Deploy. */
 export type PipelineCodeDeployFailure = {
   type: "CodeDeploy";
+  /** The AWS Code Deployment ID. */
   id: string;
+  /** The summary of the code deployment failure. */
   summary: string;
+  /** An array of deployment targets that failed deployment. Where available extra
+   * diagnostic information is available that may be usefull for troubleshooting
+   * the failed deployment.
+   */
   targets: (InstanceDiagnosticType | undefined)[];
 };
 
