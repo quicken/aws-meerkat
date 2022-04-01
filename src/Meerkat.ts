@@ -2,8 +2,8 @@ import "dotenv/config";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { CodeDeployClient } from "@aws-sdk/client-codedeploy";
 import { CodeBuildClient } from "@aws-sdk/client-codebuild";
-
-import { RawMessage, CodePipelineEvent } from "./types";
+import { CodePipelineEvent } from "./types/AwsCodePipeline";
+import { RawMessage } from "./types";
 import { Chat } from "./chat/Chat";
 import { Bot } from "./bot/Bot";
 import { SimpleBot } from "./bot/SimpleBot";

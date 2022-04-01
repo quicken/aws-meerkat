@@ -1,4 +1,4 @@
-import { CodePipelineActionEvent } from "../../../src/types";
+import { CodePipelineActionEvent } from "../../../src/types/AwsCodePipeline";
 
 /**
  * An example payload received for an AWS CodePipeline SOURCE Action Event coming from Bitbucket.

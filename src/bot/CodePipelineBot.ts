@@ -1,14 +1,16 @@
 import { Bot } from "./Bot";
 import {
-  CodePipelineEvent,
-  CodePipelineExecutionEvent,
-  CodePipelineActionEvent,
   PipelineNotification,
   LogEntry,
   PipelineCodeBuildFailure,
   PipelineCodeDeployFailure,
   RawMessage,
 } from "../types";
+import {
+  CodePipelineEvent,
+  CodePipelineExecutionEvent,
+  CodePipelineActionEvent,
+} from "../types/AwsCodePipeline";
 import { PipeLog } from "../lib/PipeLog";
 import { CodeBuild } from "../lib/CodeBuild";
 import { CodeDeploy } from "../lib/CodeDeploy";

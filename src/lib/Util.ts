@@ -1,4 +1,3 @@
-import { AlarmType } from "../types";
 import { URL } from "node:url";
 import * as https from "https";
 

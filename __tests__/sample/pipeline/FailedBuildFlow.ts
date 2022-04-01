@@ -2,7 +2,7 @@ import {
   CodePipelineActionEvent,
   CodePipelineStageEvent,
   CodePipelineExecutionEvent,
-} from "../../../src/types";
+} from "../../../src/types/AwsCodePipeline";
 
 /**
  * This file contains a collection of event data captured from a failed AWS Code Pipeline Execution with
