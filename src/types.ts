@@ -51,6 +51,12 @@ export type Notification = {
   type: string;
 };
 
+export type RawMessage = {
+  isJson: boolean;
+  subject: string;
+  body: string | Record<string, unknown>;
+};
+
 export type SimpleNotification = {
   type: "SimpleNotification";
   subject: string;

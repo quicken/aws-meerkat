@@ -1,3 +1,4 @@
+import { Bot } from "./Bot";
 import {
   CodePipelineEvent,
   CodePipelineExecutionEvent,
@@ -6,10 +7,11 @@ import {
   LogEntryType,
   PipelineCodeBuildFailure,
   PipelineCodeDeployFailure,
-} from "./types";
-import { PipeLog } from "./lib/PipeLog";
-import { CodeBuild } from "./lib/CodeBuild";
-import { CodeDeploy } from "./lib/CodeDeploy";
+  RawMessage,
+} from "../types";
+import { PipeLog } from "../lib/PipeLog";
+import { CodeBuild } from "../lib/CodeBuild";
+import { CodeDeploy } from "../lib/CodeDeploy";
 
 type CodePipelineEventType =
   | "CodePipelineExecutionEvent"
@@ -17,12 +19,13 @@ type CodePipelineEventType =
   | "CodePipelineActionEvent"
   | "";
 
-export class CodePipelineBot {
+export class CodePipelineBot extends Bot {
   pipeLog: PipeLog;
   codeBuild: CodeBuild;
   codeDeploy: CodeDeploy;
 
   constructor(pipeLog: PipeLog, codeBuild: CodeBuild, codeDeploy: CodeDeploy) {
+    super();
     this.pipeLog = pipeLog;
     this.codeBuild = codeBuild;
     this.codeDeploy = codeDeploy;
@@ -56,16 +59,23 @@ export class CodePipelineBot {
     return type;
   };
 
-  handleEvent = async (event: CodePipelineEvent) => {
-    const eventType = CodePipelineBot.detectEventType(event);
+  handleMessage = async (
+    rawMessage: RawMessage
+  ): Promise<PipelineNotification | null> => {
+    const codePipelineEvent = rawMessage.body as CodePipelineEvent;
+    const eventType = CodePipelineBot.detectEventType(codePipelineEvent);
 
     switch (eventType) {
       case "CodePipelineExecutionEvent":
-        return this.handleExecutionEvent(event as CodePipelineExecutionEvent);
+        return this.handleExecutionEvent(
+          codePipelineEvent as CodePipelineExecutionEvent
+        );
       case "CodePipelineStageEvent":
         break;
       case "CodePipelineActionEvent":
-        return this.handleActionEvent(event as CodePipelineActionEvent);
+        return this.handleActionEvent(
+          codePipelineEvent as CodePipelineActionEvent
+        );
     }
     return null;
   };

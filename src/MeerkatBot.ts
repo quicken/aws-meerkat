@@ -3,16 +3,14 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { CodeDeployClient } from "@aws-sdk/client-codedeploy";
 import { CodeBuildClient } from "@aws-sdk/client-codebuild";
 
-import {
-  Notification,
-  AlarmNotification,
-  PipelineNotification,
-  SimpleNotification,
-  CodePipelineEvent,
-} from "./types";
-import { Discord, DiscordMessageType } from "./lib/Discord";
+import { RawMessage, Notification, CodePipelineEvent } from "./types";
+import { Chat } from "./chat/Chat";
+import { Bot } from "./bot/Bot";
+import { SimpleBot } from "./bot/SimpleBot";
+import { CloudWatchAlertBot } from "./bot/CloudwatchAlertBot";
+import { CodePipelineBot } from "./bot/CodePipelineBot";
+import { DiscordChat } from "./chat/DiscordChat";
 import { PipeLog } from "./lib/PipeLog";
-import { CodePipelineBot } from "./CodePipelineBot";
 import { CodeBuild } from "./lib/CodeBuild";
 import { CodeDeploy } from "./lib/CodeDeploy";
 import { BitBucket } from "./lib/BitBucket";
@@ -21,17 +19,7 @@ import { SNSEvent } from "aws-lambda";
 
 const DB_TABLE = process.env.DB_TABLE || "devops-pipeline-monitor";
 
-const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || "";
-const DISCORD_AVATAR = process.env.DISCORD_AVATAR || "";
-const DISCORD_USERNAME = process.env.DISCORD_USERNAME || "AWS Notification";
-
-const NOTIFICATION_SERVICE = "discord";
-
-type RawMessage = {
-  isJson: boolean;
-  subject: string;
-  body: string | Record<string, unknown>;
-};
+const CHAT_SERVICE = "discord";
 
 export class Meerkat {
   dynamoDb: DynamoDBClient;
@@ -45,8 +33,9 @@ export class Meerkat {
   processSnsEvent = async (snsEvent: SNSEvent) => {
     const rawMessage = this.parseSnsEvent(snsEvent);
     const notification = await this.notificationFactory(rawMessage);
-    if (notification && NOTIFICATION_SERVICE === "discord") {
-      await this.sendDiscordNotification(notification);
+    if (notification) {
+      const chat = this.chatFactory(CHAT_SERVICE);
+      await chat.sendNotification(notification);
     }
   };
 
@@ -67,24 +56,8 @@ export class Meerkat {
    * @returns A notification or null if no notification should or can be sent.
    */
   notificationFactory = async (rawMessage: RawMessage) => {
-    const botname = this.botFactory(rawMessage);
-    let notification: Notification | null = null;
-
-    switch (botname) {
-      case "simple":
-        notification = await this.handleSimpleMessage(rawMessage);
-        break;
-      case "aws_cloudwatch_alarm":
-        notification = await this.handleCloudWatchAlarmMessage(rawMessage);
-
-        break;
-      case "aws_codepipeline_event": {
-        notification = await this.handleCodePipelineMessage(rawMessage);
-        break;
-      }
-    }
-
-    return notification;
+    const bot = await this.botFactory(rawMessage);
+    return bot.handleMessage(rawMessage);
   };
 
   /**
@@ -127,38 +100,23 @@ export class Meerkat {
    * @param rawMessage A rawMessage that should be mapped to a specific "bot".
    * @returns
    */
-  botFactory = (rawMessage: RawMessage) => {
-    if (!rawMessage.isJson) return "simple";
+  botFactory = async (rawMessage: RawMessage): Promise<Bot> => {
+    if (rawMessage.isJson) {
+      const body = rawMessage.body as Record<string, unknown>;
 
-    const body = rawMessage.body as Record<string, unknown>;
+      if (body.AlarmDescription && body.AlarmArn && body.NewStateReason) {
+        return new CloudWatchAlertBot();
+      }
 
-    if (body.AlarmDescription && body.AlarmArn && body.NewStateReason) {
-      return "aws_cloudwatch_alarm";
+      if (
+        body.detailType &&
+        body.detailType + "" === body.detailType &&
+        body.detailType.startsWith("CodePipeline")
+      ) {
+        return await this.createCodePipelineBot(rawMessage);
+      }
     }
-
-    if (
-      body.detailType &&
-      body.detailType + "" === body.detailType &&
-      body.detailType.startsWith("CodePipeline")
-    ) {
-      return "aws_codepipeline_event";
-    }
-
-    return "unknown";
-  };
-
-  /**
-   * Converts rawMessage into simple message. If the raw message body is not a string return null.
-   * @param rawMessage
-   * @returns
-   */
-  handleSimpleMessage = async (rawMessage: RawMessage) => {
-    if (rawMessage.body + "" !== rawMessage.body) return null;
-    return {
-      type: "SimpleNotification",
-      subject: rawMessage.subject,
-      message: rawMessage.body,
-    };
+    return new SimpleBot();
   };
 
   /**
@@ -167,12 +125,12 @@ export class Meerkat {
    * @param rawMessage
    * @returns
    */
-  handleCodePipelineMessage = async (rawMessage: RawMessage) => {
+  createCodePipelineBot = async (rawMessage: RawMessage) => {
     const codePipelineEvent = rawMessage.body as CodePipelineEvent;
 
     const pipelog = new PipeLog(DB_TABLE, this.codeprovider, this.dynamoDb);
     const deployArn = CodePipelineBot.getDeployArnFromEnv(
-      pipelog.name,
+      codePipelineEvent.detail.pipeline,
       process.env
     );
     const codeDeployConfig = await CodeDeploy.createClientConfig(deployArn);
@@ -181,104 +139,14 @@ export class Meerkat {
     const codeBuild = new CodeBuild(new CodeBuildClient({}));
     const pipebot = new CodePipelineBot(pipelog, codeBuild, codeDeploy);
 
-    return pipebot.handleEvent(codePipelineEvent);
+    return pipebot;
   };
 
-  /**
-   * Converts rawMessage into a cloudwatch alarm notification.
-   * If the raw message body is a string returns null.
-   * @param rawMessage
-   * @returns
-   */
-  handleCloudWatchAlarmMessage = async (rawMessage: RawMessage) => {
-    let type: "alarm" | "nag" | "recovered" | "healthy" = "alarm";
-
-    if (rawMessage.body + "" === rawMessage.body) return null;
-    const event = rawMessage.body as Record<string, unknown>;
-
-    if (event.NewStateValue === event.OldStateValue) {
-      if (event.NewStateValue === "OK") {
-        type = "healthy";
-      } else {
-        type = "nag";
-      }
-    } else {
-      if (event.NewStateValue === "OK" && event.OldStateValue === "ALARM") {
-        type = "recovered";
-      }
-    }
-
-    return {
-      type: "AlarmNotification",
-      alert: {
-        type: type,
-        name: event.AlarmName,
-        description: event.AlarmDescription,
-        reason: event.NewStateReason,
-        date: new Date(event.StateChangeTime as string).getTime(),
-      },
-    };
-  };
-
-  /** Formats and then sends a notification to Discord. */
-  sendDiscordNotification = async (notification: Notification) => {
-    const GREEN = 3066993;
-    const DARK_RED = 10038562;
-    const discord = new Discord();
-
-    let color;
-    let discordMessage: DiscordMessageType | null = null;
-
-    switch (notification.type) {
-      case "SimpleNotification": {
-        const simpleNotification = notification as SimpleNotification;
-        discordMessage = discord.simpleMessage(
-          simpleNotification.subject,
-          simpleNotification.message
-        );
-        break;
-      }
-
-      case "AlarmNotification": {
-        const alarmNotification = notification as AlarmNotification;
-
-        color = ["alarm", "nag"].includes(alarmNotification.alert.type)
-          ? DARK_RED
-          : GREEN;
-        discordMessage = discord.alarmMessage(alarmNotification);
-        break;
-      }
-
-      case "PipelineNotification": {
-        const pipelineNotification = notification as PipelineNotification;
-        if (pipelineNotification.successfull) {
-          color = GREEN;
-          discordMessage = discord.createPipeSuccessMessage(
-            pipelineNotification.name,
-            pipelineNotification.commit
-          );
-        } else {
-          color = DARK_RED;
-          discordMessage = discord.createPipeFailureMessage(
-            pipelineNotification.name,
-            pipelineNotification.commit,
-            pipelineNotification.failureDetail
-          );
-        }
-
-        break;
-      }
+  chatFactory = (service: string): Chat => {
+    switch (service) {
+      case "discord":
       default:
     }
-
-    if (discordMessage) {
-      await discord.postMessage(
-        discordMessage,
-        DISCORD_WEBHOOK,
-        DISCORD_AVATAR,
-        DISCORD_USERNAME,
-        color
-      );
-    }
+    return new DiscordChat();
   };
 }

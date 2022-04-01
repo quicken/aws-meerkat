@@ -15,7 +15,7 @@ import { CodeBuild } from "../src/lib/CodeBuild";
 import { CodeDeploy } from "../src/lib/CodeDeploy";
 import { PipeLog } from "../src/lib/PipeLog";
 import { CommitType } from "../src/types";
-import { CodePipelineBot } from "../src/CodePipelineBot";
+import { CodePipelineBot } from "../src/bot/CodePipelineBot";
 
 import {
   PIPELINE_EXECUTION_STARTED,
