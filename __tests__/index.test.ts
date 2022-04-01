@@ -1,13 +1,9 @@
 import "dotenv/config";
 import { SNSEvent, Context } from "aws-lambda";
 import { handler as lambdaHandler } from "../src/index";
-import {
-  PIPELINE_SUCCESS_EVENT,
-  SNS_ALARM_MESSAGE,
-  PIPELINE_SOURCE_ACTION_GITHUB,
-} from "./lib/TestSamples";
 
 const RUN_INTEGRATION_TESTS = false;
+
 beforeAll(() => {
   if (!RUN_INTEGRATION_TESTS) {
     console.info(
@@ -37,39 +33,27 @@ test("run-lambda", async () => {
   };
 
   await runLambdaWithSNS("Testing", fakeEvent);
-  /*
-  await runLambdaWithSNS(
-    "Testing",
-    JSON.parse(FAILED_DEPLOYMENT_EVENT.Records[0].Sns.Message)
-  );
-  */
-  expect(1).toBe(1);
-});
-
-test("pipeline-source-action", async () => {
-  if (!RUN_INTEGRATION_TESTS) return;
-
-  await runLambdaWithSNS("Testing", PIPELINE_SOURCE_ACTION_GITHUB);
-  expect(1).toBe(1);
-});
-
-test("pipeline-success-event", async () => {
-  if (!RUN_INTEGRATION_TESTS) return;
-  // await runLambdaWithSNS("Testing", PIPELINE_SUCCESS_EVENT);
-  expect(1).toBe(1);
-});
-
-test("alarm-failed-event", async () => {
-  if (!RUN_INTEGRATION_TESTS) return;
-  // await runLambdaWithSNS("Testing", SNS_ALARM_MESSAGE);
   expect(1).toBe(1);
 });
 
 async function runLambdaWithSNS(subject: string, message: object) {
-  const event = createSNSEvent(subject, JSON.stringify(message));
-  const context = createContext();
+  const CONTEXT: Context = {
+    callbackWaitsForEmptyEventLoop: true,
+    functionName: "blah",
+    functionVersion: "string",
+    invokedFunctionArn: "string",
+    memoryLimitInMB: "string",
+    awsRequestId: "string",
+    logGroupName: "string",
+    logStreamName: "string",
+    getRemainingTimeInMillis: () => 10,
+    done: (error?: Error, result?: any) => {},
+    fail: (error: Error | string) => {},
+    succeed: (messageOrObject) => {},
+  };
 
-  await lambdaHandler(event, context, () => {});
+  const event = createSNSEvent(subject, JSON.stringify(message));
+  await lambdaHandler(event, CONTEXT, () => {});
 }
 
 function createSNSEvent(subject: string, message: string): SNSEvent {
@@ -104,22 +88,5 @@ function createSNSEvent(subject: string, message: string): SNSEvent {
         },
       },
     ],
-  };
-}
-
-function createContext(): Context {
-  return {
-    callbackWaitsForEmptyEventLoop: true,
-    functionName: "blah",
-    functionVersion: "string",
-    invokedFunctionArn: "string",
-    memoryLimitInMB: "string",
-    awsRequestId: "string",
-    logGroupName: "string",
-    logStreamName: "string",
-    getRemainingTimeInMillis: () => 10,
-    done: (error?: Error, result?: any) => {},
-    fail: (error: Error | string) => {},
-    succeed: (messageOrObject) => {},
   };
 }

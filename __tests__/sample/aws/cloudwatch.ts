@@ -1,20 +1,4 @@
-import { Util } from "../../src/lib/Util";
-
-test("parse-sns-alarm-message", async () => {
-  const isAlarmMessage = Util.isAlarmMessage(snsAlarmMessage);
-  const alert = Util.castToAlarm(snsAlarmMessage);
-
-  expect(isAlarmMessage).toBe(true);
-  expect(alert.name).toBe("my-system-lb");
-  expect(alert.description).toBe("This is my Alarm");
-  expect(alert.reason).toBe(
-    "Threshold Crossed: 2 out of the last 2 datapoints [5.535714886726143 (27/09/21 01:36:00), 1.7514244573552422 (27/09/21 01:35:00)] were greater than the threshold (1.0) (minimum 2 datapoints for OK -> ALARM transition)."
-  );
-  expect(alert.date).toBe(1632706699630);
-  expect(alert.type).toBe("alarm");
-});
-
-const snsAlarmMessage = {
+export const CLOUDWATCH_ALARM = {
   AlarmName: "my-system-lb",
   AlarmDescription: "This is my Alarm",
   AWSAccountId: "111111111111",

@@ -1,5 +1,7 @@
+import { STSClient } from "@aws-sdk/client-sts";
 import {
   CodeDeployClient,
+  CodeDeployClientConfig,
   BatchGetDeploymentTargetsCommand,
   BatchGetDeploymentTargetsCommandInput,
   ListDeploymentTargetsInput,
@@ -7,6 +9,7 @@ import {
 } from "@aws-sdk/client-codedeploy";
 
 import { InstanceDiagnosticType, DiagnosticType } from "../types";
+import { Util } from "./Util";
 
 export class CodeDeploy {
   codeDeploy: CodeDeployClient;
@@ -73,5 +76,26 @@ export class CodeDeploy {
     });
 
     return deployDetails;
+  };
+
+  /**
+   * Creates the configuraion for instantiating the CodeDeployClient.
+   *
+   * Specifying an: arn provides the ability to make calls accross AWS accounts. Provided the role executing the lambda
+   * has permission to assume the role.
+   *
+   * @param rolearn Calls to code deploy are made using the arn. If this value is empty use the credentials of the lambda.
+   */
+  static createClientConfig = async (rolearn?: string) => {
+    const config: CodeDeployClientConfig = {};
+
+    if (rolearn) {
+      const stsClient = new STSClient({});
+      const credentials = await Util.fetchCredentials(stsClient, rolearn);
+
+      config.credentials = credentials;
+    }
+
+    return config;
   };
 }

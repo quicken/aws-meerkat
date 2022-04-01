@@ -5,7 +5,7 @@ import {
 import { mockClient } from "aws-sdk-client-mock";
 
 import { CodeBuild } from "../../src/lib/CodeBuild";
-import { AWS_BACTH_BUILDS } from "../sample/aws/codeBuild";
+import { SAMPLE_BATCH_BUILDS } from "../sample/aws/codeBuild";
 
 const codeBuildMock = mockClient(CodeBuildClient) as any;
 
@@ -15,7 +15,7 @@ beforeEach(() => {
 });
 
 test("fetch-build", async () => {
-  codeBuildMock.on(BatchGetBuildsCommand).resolves(AWS_BACTH_BUILDS);
+  codeBuildMock.on(BatchGetBuildsCommand).resolves(SAMPLE_BATCH_BUILDS);
 
   const codeBuild = new CodeBuild(codeBuildMock);
   const buildLogUrl = await codeBuild.fetchBuildLogUrl("mock");

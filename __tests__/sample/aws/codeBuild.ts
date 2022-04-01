@@ -1,4 +1,4 @@
-export const SAMPLE_BACTH_BUILDS = {
+export const SAMPLE_BATCH_BUILDS = {
   builds: [
     {
       id: "meerkat:56be3e40-853a-4797-9455-f88ce291fdad",

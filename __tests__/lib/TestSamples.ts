@@ -1,5 +1,4 @@
 import "dotenv/config";
-import { CodePipelineActionEvent } from "../../src/types";
 
 test("mock-test", async () => {
   expect(true).toBe(true);
@@ -167,5 +166,67 @@ export const GITHUB_GET_COMMIT_RESPONSE = {
     reason: "unsigned",
     signature: null,
     payload: null,
+  },
+};
+
+export const AWS_CODE_DEPLOY_INFO = {
+  deploymentInfo: {
+    applicationName: "meerkat",
+    deploymentGroupName: "CodeDeployGroup-16R8607X8JSY5",
+    deploymentConfigName: "CodeDeployDefault.HalfAtATime",
+    deploymentId: "d-2H7E9HBRG",
+    previousRevision: {
+      revisionType: "S3",
+      s3Location: {
+        bucket: "meerkat-artifact",
+        key: "meerkat/BuildArtif/y38gNdK",
+        bundleType: "zip",
+        eTag: "8f88669d76c2f58eb1c3341f6c6fb334-16",
+      },
+    },
+    revision: {
+      revisionType: "S3",
+      s3Location: {
+        bucket: "meerkat-artifact",
+        key: "meerkat/BuildArtif/gl5FWHX",
+        bundleType: "zip",
+        eTag: "42717b56516bc706613f7ed5a00634b4-16",
+      },
+    },
+    status: "Failed",
+    errorInformation: {
+      code: "HEALTH_CONSTRAINTS",
+      message:
+        "The overall deployment failed because too many individual instances failed deployment, too few healthy instances are available for deployment, or some instances in your deployment group are experiencing problems.",
+    },
+    createTime: "2022-03-30T19:58:51.009000+10:00",
+    completeTime: "2022-03-30T20:00:39.793000+10:00",
+    deploymentOverview: {
+      Pending: 0,
+      InProgress: 0,
+      Succeeded: 0,
+      Failed: 1,
+      Skipped: 1,
+      Ready: 0,
+    },
+    creator: "user",
+    ignoreApplicationStopFailures: false,
+    updateOutdatedInstancesOnly: false,
+    rollbackInfo: {},
+    deploymentStyle: {
+      deploymentType: "IN_PLACE",
+      deploymentOption: "WITH_TRAFFIC_CONTROL",
+    },
+    instanceTerminationWaitTimeStarted: false,
+    loadBalancerInfo: {
+      targetGroupInfoList: [
+        {
+          name: "meerkat",
+        },
+      ],
+    },
+    fileExistsBehavior: "DISALLOW",
+    deploymentStatusMessages: [],
+    computePlatform: "Server",
   },
 };

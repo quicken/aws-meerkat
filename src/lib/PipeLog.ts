@@ -52,6 +52,9 @@ export class PipeLog {
   /* The name of the DB table that stores pipelog data.*/
   private _codeProvider: BitBucket | GitHub;
 
+  /* The dynamoDB client that will be used to communicate with Dynamo DB.*/
+  private dynamoDB: DynamoDBClient;
+
   /** Set to true if a notification has been sent out for any failure within this pipeline. */
   isNotified: boolean;
 
@@ -67,12 +70,18 @@ export class PipeLog {
     token: "",
   };
 
-  constructor(dbTable: string, codeProvider: BitBucket | GitHub) {
+  constructor(
+    dbTable: string,
+    codeProvider: BitBucket | GitHub,
+    dynamoDB: DynamoDBClient
+  ) {
     this.executionId = "";
 
     this.name = "";
 
     this._dbTable = dbTable;
+
+    this.dynamoDB = dynamoDB;
 
     this._codeProvider = codeProvider;
 
@@ -104,10 +113,7 @@ export class PipeLog {
    * @param {*} executionId The pipelines executrion id.
    * @param {*} dynamoDB A dynamoDb client object from the AWS SDK.
    */
-  load = async (
-    executionId: string,
-    dynamoDB: DynamoDBClient
-  ): Promise<void> => {
+  load = async (executionId: string): Promise<void> => {
     this.executionId = executionId;
 
     const params = {
@@ -117,7 +123,7 @@ export class PipeLog {
       },
     };
     const command = new GetItemCommand(params);
-    const { Item } = await dynamoDB.send(command);
+    const { Item } = await this.dynamoDB.send(command);
 
     /* If a key does not exist dynamo db returns an empty object. */
     if (Item) {
@@ -136,7 +142,7 @@ export class PipeLog {
    * @param {*} dynamoDB A dynamoDb client object from the AWS SDK.
    * @returns
    */
-  save = async (dynamoDB: DynamoDBClient): Promise<PutItemCommandOutput> => {
+  save = async (): Promise<PutItemCommandOutput> => {
     const params = {
       TableName: this._dbTable,
       Item: marshall({
@@ -148,7 +154,7 @@ export class PipeLog {
       }),
     };
     const command = new PutItemCommand(params);
-    return dynamoDB.send(command);
+    return this.dynamoDB.send(command);
   };
 
   /**
@@ -157,21 +163,19 @@ export class PipeLog {
    * @param {'*'} message The SNS message which was received from the pipeline.
    * @returns
    */
-  handlePipelineAction = async (
-    event: CodePipelineActionEvent
-  ): Promise<void> => {
+  handlePipelineAction = async (event: CodePipelineActionEvent) => {
     this.name = event.detail.pipeline;
 
     switch (event.detail.type.provider) {
       case "CodeStarSourceConnection":
-        await this.handleCodestarActionEvent(event);
-        break;
+        return this.handleCodestarActionEvent(event);
+
       case "CodeBuild":
-        this.handleCodeBuildActionEvent(event);
-        break;
+        return this.handleCodeBuildActionEvent(event);
+
       case "CodeDeploy":
-        this.handleCodeDeployActionEvent(event);
-        break;
+      default:
+        return this.handleCodeDeployActionEvent(event);
     }
   };
 
@@ -187,7 +191,7 @@ export class PipeLog {
   private handleCodestarActionEvent = async (
     event: CodePipelineActionEvent
   ) => {
-    if (event.detail.stage !== "Source") return;
+    if (event.detail.stage !== "Source") return null;
 
     switch (event.detail.state) {
       case "SUCCEEDED": {
@@ -210,7 +214,7 @@ export class PipeLog {
       }
 
       case "FAILED": {
-        const checkout = {
+        const checkout: LogEntryType = {
           id: "",
           type: "checkout",
           name: event.detail.action,
@@ -219,8 +223,12 @@ export class PipeLog {
             : "",
         };
         this._failed.push(checkout);
+
+        return checkout;
       }
     }
+
+    return null;
   };
 
   /**
@@ -228,14 +236,12 @@ export class PipeLog {
    * @param message
    * @returns
    */
-  private handleCodeBuildActionEvent = async (
-    event: CodePipelineActionEvent
-  ) => {
+  private handleCodeBuildActionEvent = (event: CodePipelineActionEvent) => {
     if (
       event.detail.type.provider !== "CodeBuild" &&
       event.detail.state !== "FAILED"
     ) {
-      return;
+      return null;
     }
 
     const build: LogEntryType = {
@@ -250,6 +256,7 @@ export class PipeLog {
     };
 
     this._failed.push(build);
+    return build;
   };
 
   /**
@@ -257,15 +264,13 @@ export class PipeLog {
    * @param message
    * @returns
    */
-  private handleCodeDeployActionEvent = async (
-    event: CodePipelineActionEvent
-  ) => {
+  private handleCodeDeployActionEvent = (event: CodePipelineActionEvent) => {
     /* Process a Deployment Failed Action */
     if (
       event.detail.type.provider !== "CodeDeploy" &&
       event.detail.state !== "FAILED"
     ) {
-      return;
+      return null;
     }
 
     const deploy: LogEntryType = {
@@ -283,5 +288,6 @@ export class PipeLog {
     };
 
     this._failed.push(deploy);
+    return deploy;
   };
 }
