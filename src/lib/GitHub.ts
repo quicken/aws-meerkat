@@ -1,5 +1,5 @@
 import { Util } from "./Util";
-import { Commit } from "../types";
+import { Commit } from "../types/common";
 
 export class GitHub {
   /** Username for calling the Bitbucket API.  */

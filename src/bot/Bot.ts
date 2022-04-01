@@ -1,4 +1,4 @@
-import { RawMessage, Notification } from "../types";
+import { RawMessage, Notification } from "../types/common";
 
 export class Bot {
   /**

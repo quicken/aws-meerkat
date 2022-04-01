@@ -14,7 +14,7 @@ import { BitBucket } from "../src/lib/BitBucket";
 import { CodeBuild } from "../src/lib/CodeBuild";
 import { CodeDeploy } from "../src/lib/CodeDeploy";
 import { PipeLog } from "../src/lib/PipeLog";
-import { Commit } from "../src/types";
+import { Commit } from "../src/types/common";
 import { CodePipelineBot } from "../src/bot/CodePipelineBot";
 
 import {

@@ -1,4 +1,4 @@
-import { RawMessage, SimpleNotification } from "../types";
+import { RawMessage, SimpleNotification } from "../types/common";
 import { Bot } from "./Bot";
 
 export class SimpleBot extends Bot {

@@ -4,7 +4,7 @@ import {
   AlarmNotification,
   PipelineCodeBuildFailure,
   PipelineCodeDeployFailure,
-} from "../types";
+} from "../types/common";
 
 export interface DiscordMessageType {
   title: string;

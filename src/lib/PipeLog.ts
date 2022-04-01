@@ -1,7 +1,7 @@
 import { URL } from "url";
 import { BitBucket } from "./BitBucket";
 import { GitHub } from "./GitHub";
-import { Commit, LogEntry } from "../types";
+import { Commit, LogEntry } from "../types/common";
 import { CodePipelineActionEvent } from "../types/AwsCodePipeline";
 
 import {

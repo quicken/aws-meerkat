@@ -5,7 +5,7 @@ import {
   PipelineCodeBuildFailure,
   PipelineCodeDeployFailure,
   RawMessage,
-} from "../types";
+} from "../types/common";
 import {
   CodePipelineEvent,
   CodePipelineExecutionEvent,

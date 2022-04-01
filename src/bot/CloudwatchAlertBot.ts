@@ -1,4 +1,4 @@
-import { RawMessage, AlarmNotification } from "../types";
+import { RawMessage, AlarmNotification } from "../types/common";
 import { Bot } from "./Bot";
 
 export class CloudWatchAlertBot extends Bot {

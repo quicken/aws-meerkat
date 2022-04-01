@@ -20,21 +20,6 @@ export interface LogEntry {
   summary?: string;
 }
 
-/** Extra information for troubleshooting pipeline failures caused by AWS Code Build. */
-export type PipelineCodeBuildFailure = {
-  type: "CodeBuild";
-  /** The URL that shows the code build logs for this build within the AWS Web Console. */
-  logUrl: string;
-};
-
-/** Extra information for troubleshooting pipeline failures caused by AWS Code Deploy. */
-export type PipelineCodeDeployFailure = {
-  type: "CodeDeploy";
-  id: string;
-  summary: string;
-  targets: (InstanceDiagnosticType | undefined)[];
-};
-
 export type Notification = {
   type: string;
 };
@@ -65,6 +50,21 @@ export type AlarmNotification = Notification & {
     /** The time stamp form the alert transition into the current state. */
     date: number;
   };
+};
+
+/** Extra information for troubleshooting pipeline failures caused by AWS Code Build. */
+export type PipelineCodeBuildFailure = {
+  type: "CodeBuild";
+  /** The URL that shows the code build logs for this build within the AWS Web Console. */
+  logUrl: string;
+};
+
+/** Extra information for troubleshooting pipeline failures caused by AWS Code Deploy. */
+export type PipelineCodeDeployFailure = {
+  type: "CodeDeploy";
+  id: string;
+  summary: string;
+  targets: (InstanceDiagnosticType | undefined)[];
 };
 
 /**

@@ -1,4 +1,4 @@
-import { Notification } from "../types";
+import { Notification } from "../types/common";
 
 export class Chat {
   sendNotification = async (notification: Notification): Promise<void> => {

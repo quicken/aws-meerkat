@@ -4,7 +4,7 @@ import { mockClient } from "aws-sdk-client-mock";
 import { PipeLog } from "../../src/lib/PipeLog";
 import { BitBucket } from "../../src/lib/BitBucket";
 import { GitHub } from "../../src/lib/GitHub";
-import { Commit, LogEntry } from "../../src/types";
+import { Commit, LogEntry } from "../../src/types/common";
 import { PIPELINE_STAGE_BUILD_ACTION_BUILD_FAILED } from "../sample/pipeline/FailedBuildFlow";
 import { PIPELINE_STAGE_DEPLOY_ACTION_DEPLOY_GROUP_RED_FAILED } from "../sample/pipeline/FailedDeploymentFlow";
 import {

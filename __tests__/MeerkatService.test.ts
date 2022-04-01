@@ -6,7 +6,7 @@ import {
   SimpleNotification,
   AlarmNotification,
   PipelineNotification,
-} from "../src/types";
+} from "../src/types/common";
 import { BitBucket } from "../src/lib/BitBucket";
 import { ITEM_FAILED_DEPLOYMENT_PIPE_LOG } from "./sample/aws/dynamoDb";
 import { CLOUDWATCH_ALARM } from "./sample/aws/cloudwatch";

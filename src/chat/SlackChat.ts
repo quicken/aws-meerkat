@@ -5,7 +5,7 @@ import {
   AlarmNotification,
   PipelineNotification,
   SimpleNotification,
-} from "../types";
+} from "../types/common";
 import { Slack, SlackMessageType } from "../lib/Slack";
 import { Chat } from "./Chat";
 

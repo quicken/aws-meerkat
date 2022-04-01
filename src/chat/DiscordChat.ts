@@ -5,7 +5,7 @@ import {
   AlarmNotification,
   PipelineNotification,
   SimpleNotification,
-} from "../types";
+} from "../types/common";
 import { Discord, DiscordMessageType } from "../lib/Discord";
 import { Chat } from "./Chat";
 

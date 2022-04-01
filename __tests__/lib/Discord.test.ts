@@ -2,10 +2,10 @@ import "dotenv/config";
 import { Discord } from "../../src/lib/Discord";
 import {
   Commit,
+  AlarmNotification,
   PipelineCodeBuildFailure,
   PipelineCodeDeployFailure,
-  AlarmNotification,
-} from "../../src/types";
+} from "../../src/types/common";
 
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || "";
 const DISCORD_AVATAR = process.env.DISCORD_AVATAR || "";

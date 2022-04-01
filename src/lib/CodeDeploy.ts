@@ -8,7 +8,7 @@ import {
   ListDeploymentTargetsCommand,
 } from "@aws-sdk/client-codedeploy";
 
-import { InstanceDiagnosticType, DiagnosticType } from "../types";
+import { InstanceDiagnosticType, DiagnosticType } from "../types/common";
 import { Util } from "./Util";
 
 export class CodeDeploy {
