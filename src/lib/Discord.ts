@@ -1,14 +1,12 @@
 import { Util } from "./Util";
 import {
   CommitType,
-  LogEntryType,
-  BuildLogEntryType,
-  DeployLogEntryType,
-  AlarmType,
+  AlarmNotification,
+  PipelineCodeBuildFailure,
+  PipelineCodeDeployFailure,
 } from "../types";
-import { Z_FILTERED } from "zlib";
 
-interface DiscordMessageType {
+export interface DiscordMessageType {
   title: string;
   description: string;
   fields: any[];
@@ -19,7 +17,10 @@ export class Discord {
   public createPipeFailureMessage(
     pipeLineName: string,
     commit: CommitType,
-    logEntry: LogEntryType
+    failureDetail:
+      | PipelineCodeBuildFailure
+      | PipelineCodeDeployFailure
+      | undefined
   ): DiscordMessageType {
     const message: DiscordMessageType = {
       title: `:see_no_evil: ${pipeLineName}`,
@@ -37,36 +38,38 @@ export class Discord {
       });
     }
 
-    switch (logEntry.type) {
-      case "build":
+    const type = failureDetail ? failureDetail.type : "";
+
+    switch (type) {
+      case "CodeBuild":
         {
-          const buildLog = logEntry as BuildLogEntryType;
+          const codeBuildFailure = failureDetail as PipelineCodeBuildFailure;
 
           message.title = `:hot_face: ${author} broke the build.`;
           message.description = `Pipeline: ${pipeLineName}.`;
           message.fields.push({
             name: `View Build Log:`,
-            value: `${buildLog.build.logUrl}`,
+            value: `${codeBuildFailure.logUrl}`,
           });
         }
         break;
 
-      case "deploy":
+      case "CodeDeploy":
         {
-          const deployLog = logEntry as DeployLogEntryType;
+          const codeDeployFailure = failureDetail as PipelineCodeDeployFailure;
 
           message.title = `:see_no_evil: ${pipeLineName}, deployment failed. `;
           message.description = `${author}`;
-          if (deployLog.summary) {
+          if (codeDeployFailure.summary) {
             message.fields.push({
               name: "Summary",
-              value: `\`\`\`${deployLog.summary}\`\`\``,
+              value: `\`\`\`${codeDeployFailure.summary}\`\`\``,
             });
           }
 
-          if (deployLog.id !== "") {
-            for (const info of deployLog.deploy.targets) {
-              if (!info.diagnostics) continue;
+          if (codeDeployFailure.id !== "") {
+            for (const info of codeDeployFailure.targets) {
+              if (!info || !info.diagnostics) continue;
               const logTail =
                 "```bash\n " +
                 info.diagnostics?.logTail.slice(
@@ -123,19 +126,19 @@ export class Discord {
     };
   }
 
-  public alarmMessage(alert: AlarmType): DiscordMessageType {
+  public alarmMessage(alarm: AlarmNotification): DiscordMessageType {
     const message: DiscordMessageType = {
       title: "",
-      description: alert.description,
+      description: alarm.alert.description,
       fields: [],
       footer: "",
     };
 
-    switch (alert.type) {
+    switch (alarm.alert.type) {
       case "alarm":
-        message.title = `:face_with_symbols_over_mouth:  ${alert.name} is in alarm.`;
+        message.title = `:face_with_symbols_over_mouth:  ${alarm.alert.name} is in alarm.`;
 
-        const detail = "```bash\n " + alert.reason + " ```";
+        const detail = "```bash\n " + alarm.alert.reason + " ```";
 
         message.fields.push({
           name: `Reason`,
@@ -143,14 +146,14 @@ export class Discord {
         });
         break;
       case "nag":
-        message.title = `:skull_crossbones: ${alert.name} is still broken.`;
+        message.title = `:skull_crossbones: ${alarm.alert.name} is still broken.`;
         message.description = "";
         break;
       case "recovered":
-        message.title = `::partying_face: ${alert.name} recovered.`;
+        message.title = `::partying_face: ${alarm.alert.name} recovered.`;
         break;
       case "healthy":
-        message.title = `:call_me:  ${alert.name} is healthy.`;
+        message.title = `:call_me:  ${alarm.alert.name} is healthy.`;
         message.description = "";
         break;
     }

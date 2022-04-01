@@ -32,6 +32,65 @@ export interface DeployLogEntryType extends LogEntryType {
   };
 }
 
+/** Extra information for troubleshooting pipeline failures caused by AWS Code Build. */
+export type PipelineCodeBuildFailure = {
+  type: "CodeBuild";
+  /** The URL that shows the code build logs for this build within the AWS Web Console. */
+  logUrl: string;
+};
+
+/** Extra information for troubleshooting pipeline failures caused by AWS Code Deploy. */
+export type PipelineCodeDeployFailure = {
+  type: "CodeDeploy";
+  id: string;
+  summary: string;
+  targets: (InstanceDiagnosticType | undefined)[];
+};
+
+export type Notification = {
+  type: string;
+};
+
+export type SimpleNotification = {
+  type: "SimpleNotification";
+  subject: string;
+  message: string;
+};
+
+export type AlarmNotification = Notification & {
+  type: "AlarmNotification";
+  alert: {
+    /** The type of alert that is being raised. */
+    type: "alarm" | "nag" | "recovered" | "healthy";
+    /**  The name of the pipeline. */
+    name: string;
+    /** The Alarm description. */
+    description: string;
+    /** Extra information why the alarm / alert was raised. */
+    reason: any;
+    /** The time stamp form the alert transition into the current state. */
+    date: number;
+  };
+};
+
+/**
+ * The pipeline notification is available after the pipeline execution has been completed.
+ *
+ * The term "completed" in the context of this type means that either the
+ * entire pipeline was successfull or at least one action in any stage failed.
+ */
+export type PipelineNotification = Notification & {
+  type: "PipelineNotification";
+  /**  The name of the pipeline. */
+  name: string;
+  /** The commit that triggered the pipeline execution. */
+  commit: CommitType;
+  /** Indicates if the overall pipeline execution was successfull. */
+  successfull: boolean;
+  /** Contains information related to the cause of the pipeline failure */
+  failureDetail?: PipelineCodeBuildFailure | PipelineCodeDeployFailure;
+};
+
 export interface DiagnosticType {
   errorCode: string;
   logTail: string;
@@ -58,7 +117,12 @@ export interface AlarmType {
  *
  * https://docs.aws.amazon.com/codepipeline/latest/userguide/detect-state-changes-cloudwatch-events.html
  */
-type CodePipelineEvent = {
+export type CodePipelineEvent = {
+  detail: {
+    pipeline: string;
+    "execution-id": string;
+    version: 16.0;
+  };
   account: string;
   region: string;
   source: string;
@@ -73,14 +137,11 @@ type CodePipelineEvent = {
 export type CodePipelineExecutionEvent = CodePipelineEvent & {
   detailType: "CodePipeline Pipeline Execution State Change";
   detail: {
-    pipeline: string;
-    "execution-id": string;
     "execution-trigger"?: {
       "trigger-type": "Webhook";
       "trigger-detail": string;
     };
     state: "STARTED" | "SUCCEEDED" | "FAILED";
-    version: 16.0;
   };
   additionalAttributes: {
     sourceActions?: any[];
@@ -101,11 +162,8 @@ type CodePipelineFailedAction = {
 export type CodePipelineStageEvent = CodePipelineEvent & {
   detailType: "CodePipeline Stage Execution State Change";
   detail: {
-    pipeline: string;
-    "execution-id": string;
     state: "STARTED" | "SUCCEEDED" | "FAILED";
     stage: string;
-    version: 16.0;
   };
   additionalAttributes: {
     sourceActions?: any[];
@@ -135,8 +193,6 @@ type CodePipeLineArtifact = {
 export type CodePipelineActionEvent = CodePipelineEvent & {
   detailType: "CodePipeline Action Execution State Change";
   detail: {
-    pipeline: string;
-    "execution-id": string;
     "execution-result"?: {
       "external-execution-url": string;
       "external-execution-id": string;
@@ -150,7 +206,6 @@ export type CodePipelineActionEvent = CodePipelineEvent & {
     stage: string;
     region: string;
     type: CodePipelineActionType;
-    version: 16.0;
   };
   additionalAttributes: {
     sourceActions?: any[];
