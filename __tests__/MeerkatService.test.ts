@@ -50,7 +50,7 @@ test("handle_simple_message", async () => {
     body: "Hello World",
   };
 
-  const notification = await meerkat.notificationFactory(rawMessage);
+  const notification = await meerkat.handleMessage(rawMessage);
 
   expect(notification?.type).toBe("SimpleNotification");
   if (notification && notification.type === "SimpleNotification") {
@@ -69,7 +69,7 @@ test("handle_cloudwatch_alarm_message", async () => {
     body: CLOUDWATCH_ALARM,
   };
 
-  const notification = await meerkat.notificationFactory(rawMessage);
+  const notification = await meerkat.handleMessage(rawMessage);
   expect(notification?.type).toBe("AlarmNotification");
 
   if (notification && notification.type === "SimpleNotification") {
@@ -93,7 +93,7 @@ test("handle_code_pipeline_message_success", async () => {
     body: PIPELINE_EXECUTION_SUCCEEDED,
   };
 
-  const notification = await meerkat.notificationFactory(rawMessage);
+  const notification = await meerkat.handleMessage(rawMessage);
 
   expect(notification?.type).toBe("PipelineNotification");
   if (notification && notification.type === "PipelineNotification") {

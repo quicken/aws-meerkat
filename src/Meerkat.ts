@@ -37,7 +37,7 @@ export class Meerkat {
 
   processSnsEvent = async (snsEvent: SNSEvent) => {
     const rawMessage = this.parseSnsEvent(snsEvent);
-    const notification = await this.notificationFactory(rawMessage);
+    const notification = await this.handleMessage(rawMessage);
     if (notification) {
       const chat = this.chatFactory(this.chatService);
       await chat.sendNotification(notification);
@@ -60,7 +60,7 @@ export class Meerkat {
    * @param rawMessage The raw message that should be mapped to a notification.
    * @returns A notification or null if no notification should or can be sent.
    */
-  notificationFactory = async (rawMessage: RawMessage) => {
+  handleMessage = async (rawMessage: RawMessage) => {
     const bot = await this.botFactory(rawMessage);
     return bot.handleMessage(rawMessage);
   };
