@@ -107,7 +107,7 @@ export class CodePipelineBot extends Bot {
     if (pipelog.isFailed && pipelog.failed) {
       const logEntry = { ...pipelog.failed };
       if (logEntry.type === "build") {
-        notification.failureDetail = await this.fetchCodeBuildInfo(logEntry);
+        notification.failureDetail = await this.fetchCodeBuildInfo(logEntry.id);
       } else if (logEntry.type === "deploy") {
         notification.failureDetail = await this.fetchCodeDeployInfo(logEntry);
       }
@@ -117,11 +117,11 @@ export class CodePipelineBot extends Bot {
   };
 
   private fetchCodeBuildInfo = async (
-    logEntry: LogEntry
+    buildId: string
   ): Promise<PipelineCodeBuildFailure> => {
     return {
       type: "CodeBuild",
-      logUrl: await this.codeBuild.fetchBuildLogUrl(logEntry.id),
+      logUrl: await this.codeBuild.fetchBuildLogUrl(buildId),
     };
   };
 
