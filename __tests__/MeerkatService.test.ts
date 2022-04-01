@@ -1,6 +1,6 @@
 import { DynamoDBClient, GetItemCommand } from "@aws-sdk/client-dynamodb";
 import { mockClient } from "aws-sdk-client-mock";
-import { Meerkat } from "../src/MeerkatBot";
+import { Meerkat } from "../src/Meerkat";
 import {
   CommitType,
   SimpleNotification,

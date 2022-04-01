@@ -2,7 +2,7 @@ import { SNSEvent, SNSHandler, Context } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { BitBucket } from "./lib/BitBucket";
 import { GitHub } from "./lib/GitHub";
-import { Meerkat } from "./MeerkatBot";
+import { Meerkat } from "./Meerkat";
 
 const DYNAMO_ENDPOINT = process.env.DYNAMO_ENDPOINT;
 const GIT_PROVIDER = process.env.GIT_PROVIDER || "";

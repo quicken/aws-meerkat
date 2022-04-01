@@ -3,7 +3,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { CodeDeployClient } from "@aws-sdk/client-codedeploy";
 import { CodeBuildClient } from "@aws-sdk/client-codebuild";
 
-import { RawMessage, Notification, CodePipelineEvent } from "./types";
+import { RawMessage, CodePipelineEvent } from "./types";
 import { Chat } from "./chat/Chat";
 import { Bot } from "./bot/Bot";
 import { SimpleBot } from "./bot/SimpleBot";

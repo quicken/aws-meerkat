@@ -164,3 +164,13 @@ https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html
 #### TEST_CODE_BUILD_ID
 
 For unit testing only. A code build deployment id from a failed build.
+
+## Known Issues
+
+There is a Bug/Feature in jest where running a single test will execute all tests if the file name of the single test is contained in the absolute
+file-path on the system.
+
+For example, suppose the project root is in the file system at: /home/jack/meerkat. Running a test called "meerkat" or "user" will run ALL unit-tests
+since those words are contained in the absolute file path.
+
+As a workaround, the "meerkat" unit test has been renamed to meerkat-service.test.ts.
