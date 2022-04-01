@@ -10,6 +10,7 @@ import { SimpleBot } from "./bot/SimpleBot";
 import { CloudWatchAlertBot } from "./bot/CloudwatchAlertBot";
 import { CodePipelineBot } from "./bot/CodePipelineBot";
 import { DiscordChat } from "./chat/DiscordChat";
+import { SlackChat } from "./chat/SlackChat";
 import { PipeLog } from "./lib/PipeLog";
 import { CodeBuild } from "./lib/CodeBuild";
 import { CodeDeploy } from "./lib/CodeDeploy";
@@ -19,22 +20,26 @@ import { SNSEvent } from "aws-lambda";
 
 const DB_TABLE = process.env.DB_TABLE || "devops-pipeline-monitor";
 
-const CHAT_SERVICE = "discord";
-
 export class Meerkat {
   dynamoDb: DynamoDBClient;
   codeprovider: BitBucket | GitHub;
+  chatService: string;
 
-  constructor(dynamoDb: DynamoDBClient, codeprovider: BitBucket | GitHub) {
+  constructor(
+    dynamoDb: DynamoDBClient,
+    codeprovider: BitBucket | GitHub,
+    chatService: string
+  ) {
     this.dynamoDb = dynamoDb;
     this.codeprovider = codeprovider;
+    this.chatService = chatService;
   }
 
   processSnsEvent = async (snsEvent: SNSEvent) => {
     const rawMessage = this.parseSnsEvent(snsEvent);
     const notification = await this.notificationFactory(rawMessage);
     if (notification) {
-      const chat = this.chatFactory(CHAT_SERVICE);
+      const chat = this.chatFactory(this.chatService);
       await chat.sendNotification(notification);
     }
   };
@@ -144,6 +149,8 @@ export class Meerkat {
 
   chatFactory = (service: string): Chat => {
     switch (service) {
+      case "slack":
+        return new SlackChat();
       case "discord":
       default:
     }

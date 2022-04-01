@@ -18,7 +18,9 @@ const DYNAMO_DB = new DynamoDBClient({
   endpoint: DYNAMO_ENDPOINT,
 });
 
-const meerkat = new Meerkat(DYNAMO_DB, CODE_PROVIDER);
+const CHAT_SERVICE = "discord";
+
+const meerkat = new Meerkat(DYNAMO_DB, CODE_PROVIDER, CHAT_SERVICE);
 
 export const handler: SNSHandler = async (
   event: SNSEvent,

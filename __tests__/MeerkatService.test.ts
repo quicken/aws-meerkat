@@ -12,6 +12,8 @@ import { ITEM_FAILED_DEPLOYMENT_PIPE_LOG } from "./sample/aws/dynamoDb";
 import { CLOUDWATCH_ALARM } from "./sample/aws/cloudwatch";
 import { PIPELINE_EXECUTION_SUCCEEDED } from "./sample/pipeline/SuccessFlowEvents";
 
+const CHAT_SERVICE = "discord";
+
 const dynamoDbMock = mockClient(DynamoDBClient) as any;
 const bitbucket = new BitBucket("", "");
 
@@ -41,7 +43,7 @@ beforeEach(() => {
 
 test("handle_simple_message", async () => {
   dynamoDbMock.on(GetItemCommand).resolves(ITEM_FAILED_DEPLOYMENT_PIPE_LOG);
-  const meerkat = new Meerkat(dynamoDbMock, bitbucket);
+  const meerkat = new Meerkat(dynamoDbMock, bitbucket, CHAT_SERVICE);
   const rawMessage = {
     isJson: false,
     subject: "This is a test.",
@@ -60,7 +62,7 @@ test("handle_simple_message", async () => {
 
 test("handle_cloudwatch_alarm_message", async () => {
   dynamoDbMock.on(GetItemCommand).resolves(ITEM_FAILED_DEPLOYMENT_PIPE_LOG);
-  const meerkat = new Meerkat(dynamoDbMock, bitbucket);
+  const meerkat = new Meerkat(dynamoDbMock, bitbucket, CHAT_SERVICE);
   const rawMessage = {
     isJson: true,
     subject: "",
@@ -84,7 +86,7 @@ test("handle_cloudwatch_alarm_message", async () => {
 
 test("handle_code_pipeline_message_success", async () => {
   dynamoDbMock.on(GetItemCommand).resolves(null);
-  const meerkat = new Meerkat(dynamoDbMock, bitbucket);
+  const meerkat = new Meerkat(dynamoDbMock, bitbucket, CHAT_SERVICE);
   const rawMessage = {
     isJson: true,
     subject: "",

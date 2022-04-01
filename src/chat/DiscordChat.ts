@@ -14,11 +14,12 @@ const DISCORD_AVATAR = process.env.DISCORD_AVATAR || "";
 const DISCORD_USERNAME = process.env.DISCORD_USERNAME || "AWS Notification";
 
 export class DiscordChat extends Chat {
+  private discord = new Discord();
+
   /** Formats and then sends a notification to Discord. */
   sendNotification = async (notification: Notification) => {
     const GREEN = 3066993;
     const DARK_RED = 10038562;
-    const discord = new Discord();
 
     let color;
     let discordMessage: DiscordMessageType | null = null;
@@ -26,7 +27,7 @@ export class DiscordChat extends Chat {
     switch (notification.type) {
       case "SimpleNotification": {
         const simpleNotification = notification as SimpleNotification;
-        discordMessage = discord.simpleMessage(
+        discordMessage = this.discord.simpleMessage(
           simpleNotification.subject,
           simpleNotification.message
         );
@@ -39,7 +40,7 @@ export class DiscordChat extends Chat {
         color = ["alarm", "nag"].includes(alarmNotification.alert.type)
           ? DARK_RED
           : GREEN;
-        discordMessage = discord.alarmMessage(alarmNotification);
+        discordMessage = this.discord.alarmMessage(alarmNotification);
         break;
       }
 
@@ -47,13 +48,13 @@ export class DiscordChat extends Chat {
         const pipelineNotification = notification as PipelineNotification;
         if (pipelineNotification.successfull) {
           color = GREEN;
-          discordMessage = discord.createPipeSuccessMessage(
+          discordMessage = this.discord.createPipeSuccessMessage(
             pipelineNotification.name,
             pipelineNotification.commit
           );
         } else {
           color = DARK_RED;
-          discordMessage = discord.createPipeFailureMessage(
+          discordMessage = this.discord.createPipeFailureMessage(
             pipelineNotification.name,
             pipelineNotification.commit,
             pipelineNotification.failureDetail
@@ -66,7 +67,7 @@ export class DiscordChat extends Chat {
     }
 
     if (discordMessage) {
-      await discord.postMessage(
+      await this.discord.postMessage(
         discordMessage,
         DISCORD_WEBHOOK,
         DISCORD_AVATAR,

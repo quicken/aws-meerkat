@@ -11,7 +11,7 @@ interface SlackSectionType {
   fields: SlackBlockType[];
 }
 
-interface SlackMessageType {
+export interface SlackMessageType {
   text: string;
   blocks: (SlackSectionType | SlackBlockType)[];
 }
