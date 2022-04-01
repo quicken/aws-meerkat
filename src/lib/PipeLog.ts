@@ -1,7 +1,7 @@
 import { URL } from "url";
 import { BitBucket } from "./BitBucket";
 import { GitHub } from "./GitHub";
-import { CommitType, LogEntryType, CodePipelineActionEvent } from "../types";
+import { Commit, LogEntryType, CodePipelineActionEvent } from "../types";
 
 import {
   DynamoDBClient,
@@ -41,7 +41,7 @@ export class PipeLog {
    * summary: The commit message.
    * link: A link to the website showing details for this commit.
    */
-  commit: CommitType;
+  commit: Commit;
 
   /* The name of the DB table that stores pipelog data.*/
   private _dbTable: string;

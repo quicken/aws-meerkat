@@ -1,6 +1,6 @@
 import { Util } from "./Util";
 import {
-  CommitType,
+  Commit,
   AlarmNotification,
   PipelineCodeBuildFailure,
   PipelineCodeDeployFailure,
@@ -16,7 +16,7 @@ export interface DiscordMessageType {
 export class Discord {
   public createPipeFailureMessage(
     pipeLineName: string,
-    commit: CommitType,
+    commit: Commit,
     failureDetail:
       | PipelineCodeBuildFailure
       | PipelineCodeDeployFailure
@@ -96,7 +96,7 @@ export class Discord {
 
   public createPipeSuccessMessage(
     pipeLineName: string,
-    commit: CommitType
+    commit: Commit
   ): DiscordMessageType {
     const author = commit.author.length === 0 ? "" : commit.author;
 

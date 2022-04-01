@@ -4,7 +4,7 @@ import { mockClient } from "aws-sdk-client-mock";
 import { PipeLog } from "../../src/lib/PipeLog";
 import { BitBucket } from "../../src/lib/BitBucket";
 import { GitHub } from "../../src/lib/GitHub";
-import { CommitType, LogEntryType } from "../../src/types";
+import { Commit, LogEntryType } from "../../src/types";
 import { PIPELINE_STAGE_BUILD_ACTION_BUILD_FAILED } from "../sample/pipeline/FailedBuildFlow";
 import { PIPELINE_STAGE_DEPLOY_ACTION_DEPLOY_GROUP_RED_FAILED } from "../sample/pipeline/FailedDeploymentFlow";
 import {
@@ -20,7 +20,7 @@ jest.mock("../../src/lib/BitBucket", () => {
   return {
     BitBucket: jest.fn().mockImplementation(() => {
       return {
-        fetchCommit: (repo: string, commitId: string): Promise<CommitType> => {
+        fetchCommit: (repo: string, commitId: string): Promise<Commit> => {
           return new Promise((resolve, reject) => {
             resolve({
               id: "f7ec85262da48e2b15d03037b138963c5a89d39f",
@@ -40,7 +40,7 @@ jest.mock("../../src/lib/GitHub", () => {
   return {
     GitHub: jest.fn().mockImplementation(() => {
       return {
-        fetchCommit: (repo: string, commitId: string): Promise<CommitType> => {
+        fetchCommit: (repo: string, commitId: string): Promise<Commit> => {
           return new Promise((resolve, reject) => {
             resolve({
               id: "f7ec85262da48e2b15d03037b138963c5a89d39f",

@@ -4,7 +4,7 @@
  * summary: The commit message.
  * link: A link to the website showing details for this commit.
  */
-export interface CommitType {
+export interface Commit {
   id: string;
   author: string;
   summary: string;
@@ -90,7 +90,7 @@ export type PipelineNotification = Notification & {
   /**  The name of the pipeline. */
   name: string;
   /** The commit that triggered the pipeline execution. */
-  commit: CommitType;
+  commit: Commit;
   /** Indicates if the overall pipeline execution was successfull. */
   successfull: boolean;
   /** Contains information related to the cause of the pipeline failure */

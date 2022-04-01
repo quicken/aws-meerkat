@@ -1,5 +1,5 @@
 import { Util } from "./Util";
-import { CommitType } from "../types";
+import { Commit } from "../types";
 
 export class BitBucket {
   /** Username for calling the Bitbucket API.  */
@@ -27,7 +27,7 @@ export class BitBucket {
    * @returns A promise which resolves to a object containing the commit information. See the bitbucket api
    * documentation for details.
    */
-  fetchCommit = async (repo: string, commitId: string): Promise<CommitType> => {
+  fetchCommit = async (repo: string, commitId: string): Promise<Commit> => {
     const AUTHORIZATION = Buffer.from(
       this._username + ":" + this._password
     ).toString("base64");

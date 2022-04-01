@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { Discord } from "../../src/lib/Discord";
 import {
-  CommitType,
+  Commit,
   PipelineCodeBuildFailure,
   PipelineCodeDeployFailure,
   AlarmNotification,
@@ -12,7 +12,7 @@ const DISCORD_AVATAR = process.env.DISCORD_AVATAR || "";
 const DISCORD_USERNAME = process.env.DISCORD_USERNAME || "AWS Notification";
 
 test("create-default-failed-message", async () => {
-  const commit: CommitType = {
+  const commit: Commit = {
     id: "123456",
     author: "Jack Sparrow",
     summary: "Retighten the spiggot on the warp-drive",
@@ -36,7 +36,7 @@ test("create-default-failed-message", async () => {
 });
 
 test("create-build-failed-message", async () => {
-  const commit: CommitType = {
+  const commit: Commit = {
     id: "123456",
     author: "Jack Sparrow",
     summary: "Retighten the spiggot on the warp-drive",
@@ -60,7 +60,7 @@ test("create-build-failed-message", async () => {
 });
 
 test("create-deploy-failed-message", async () => {
-  const commit: CommitType = {
+  const commit: Commit = {
     id: "123456",
     author: "Jack Sparrow",
     summary: "Retighten the spiggot on the warp-drive",

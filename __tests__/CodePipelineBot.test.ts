@@ -14,7 +14,7 @@ import { BitBucket } from "../src/lib/BitBucket";
 import { CodeBuild } from "../src/lib/CodeBuild";
 import { CodeDeploy } from "../src/lib/CodeDeploy";
 import { PipeLog } from "../src/lib/PipeLog";
-import { CommitType } from "../src/types";
+import { Commit } from "../src/types";
 import { CodePipelineBot } from "../src/bot/CodePipelineBot";
 
 import {
@@ -37,7 +37,7 @@ jest.mock("../src/lib/BitBucket", () => {
   return {
     BitBucket: jest.fn().mockImplementation(() => {
       return {
-        fetchCommit: (repo: string, commitId: string): Promise<CommitType> => {
+        fetchCommit: (repo: string, commitId: string): Promise<Commit> => {
           return new Promise((resolve, reject) => {
             resolve({
               id: "f7ec85262da48e2b15d03037b138963c5a89d39f",

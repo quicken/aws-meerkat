@@ -2,7 +2,7 @@ import { DynamoDBClient, GetItemCommand } from "@aws-sdk/client-dynamodb";
 import { mockClient } from "aws-sdk-client-mock";
 import { Meerkat } from "../src/Meerkat";
 import {
-  CommitType,
+  Commit,
   SimpleNotification,
   AlarmNotification,
   PipelineNotification,
@@ -21,7 +21,7 @@ jest.mock("../src/lib/BitBucket", () => {
   return {
     BitBucket: jest.fn().mockImplementation(() => {
       return {
-        fetchCommit: (repo: string, commitId: string): Promise<CommitType> => {
+        fetchCommit: (repo: string, commitId: string): Promise<Commit> => {
           return new Promise((resolve, reject) => {
             resolve({
               id: "f7ec85262da48e2b15d03037b138963c5a89d39f",
