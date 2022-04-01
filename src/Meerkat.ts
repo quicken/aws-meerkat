@@ -1,4 +1,3 @@
-import "dotenv/config";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { CodeDeployClient } from "@aws-sdk/client-codedeploy";
 import { CodeBuildClient } from "@aws-sdk/client-codebuild";
