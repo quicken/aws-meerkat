@@ -30,8 +30,17 @@ const DB_TABLE = process.env.DB_TABLE || "devops-pipeline-monitor";
  *
  */
 export class Meerkat {
+  /**
+   * The Dynamo DB Client that will be used to track notification meta data.
+   */
   dynamoDb: DynamoDBClient;
+
+  /** The service that will be used to retrieve commit information when
+   * processing AWS Code Pipeline events.  */
   codeprovider: BitBucket | GitHub;
+
+  /** Identifies the chat service that should be used to deliver notification.
+   * If a service can not be mapped discord will be used. */
   chatService: string;
 
   constructor(
