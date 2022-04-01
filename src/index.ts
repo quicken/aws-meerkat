@@ -27,5 +27,5 @@ export const handler: SNSHandler = async (
   context?: Context
 ) => {
   console.log("v1.3.0");
-  await meerkat.processSnsEvent(event);
+  await meerkat.main(event);
 };

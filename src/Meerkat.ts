@@ -20,6 +20,15 @@ import { SNSEvent } from "aws-lambda";
 
 const DB_TABLE = process.env.DB_TABLE || "devops-pipeline-monitor";
 
+/**
+ * Meerkat contains the business logic for processing incoming messages from an SNS Topic subscription.
+ *
+ * Meerkat will attempt to parse the incoming message and determine the BOT that should
+ * perform message processing.
+ *
+ * If a bot generates a notification, meerkat will hand the notification to a chat service for delivery.
+ *
+ */
 export class Meerkat {
   dynamoDb: DynamoDBClient;
   codeprovider: BitBucket | GitHub;
@@ -35,7 +44,13 @@ export class Meerkat {
     this.chatService = chatService;
   }
 
-  processSnsEvent = async (snsEvent: SNSEvent) => {
+  /**
+   * This is the entry point used by a lambda function that want to process
+   * incoming SNS Events using Meerkat.
+   * @param snsEvent The SNSEvent received by an AWS Lambda function that is subscribed to an SNS Topic.
+   * @returns
+   */
+  main = async (snsEvent: SNSEvent) => {
     const rawMessage = this.parseSnsEvent(snsEvent);
     return await this.handleMessage(rawMessage);
   };
@@ -98,11 +113,7 @@ export class Meerkat {
   };
 
   /**
-   * Determine which "bot" should handle mapping this rawMessage to a
-   * notification.
-   *
-   * TODO: Convert this to a proper factory pattern. That is instead of
-   * returning a string return a "bot". That implements handleSimpleMessage, handleCloudWatchAlarmMessage and handleCodePipelineMessage.
+   * Returns an instance of the Bot that should handle this rawMessage.
    *
    * @param rawMessage A rawMessage that should be mapped to a specific "bot".
    * @returns
@@ -149,6 +160,11 @@ export class Meerkat {
     return pipebot;
   };
 
+  /**
+   * Returns the chat service that should be used to send notifications.
+   * @param service The service identifier. e.g. slack, discord etc.
+   * @returns
+   */
   chatFactory = (service: string): Chat => {
     switch (service) {
       case "slack":
