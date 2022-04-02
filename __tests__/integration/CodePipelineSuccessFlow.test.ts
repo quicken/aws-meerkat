@@ -130,40 +130,6 @@ const getPipelineSuccessFlow = () => {
     | CodePipelineStageEvent
   )[] = [];
   /* ===========================================================*/
-  /* 2022-04-02T02:22:36.313Z */
-  event.push({
-    account: "000000000000",
-    detailType: "CodePipeline Action Execution State Change",
-    region: "ap-southeast-2",
-    source: "aws.codepipeline",
-    time: "2022-04-02T02:22:27Z",
-    notificationRuleArn:
-      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
-    detail: {
-      pipeline: "meerkat",
-      "execution-id": "df3adc51-baf9-4004-9cbe-8c4f35c83ed7",
-      stage: "DeployToExternalAccount",
-      "execution-result": {
-        "external-execution-url":
-          "https://console.aws.amazon.com/codedeploy/home?region=ap-southeast-2#/deployments/d-6QQL9R3SF",
-        "external-execution-summary": "Deployment Succeeded",
-        "external-execution-id": "d-6QQL9R3SF",
-      },
-      action: "Deploy-RED",
-      state: "SUCCEEDED",
-      region: "ap-southeast-2",
-      type: {
-        owner: "AWS",
-        provider: "CodeDeploy",
-        category: "Deploy",
-        version: "1",
-      },
-      version: 16,
-    },
-    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
-    additionalAttributes: {},
-  });
-  /* ===========================================================*/
   /* 2022-04-02T12:30:50.159+10:00 */
   event.push({
     account: "000000000000",

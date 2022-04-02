@@ -14,13 +14,14 @@ import {
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 
 /**
- * A class which bundles method required to provide notifications which provide context to the
- * cause of a pipeline build failure.
+ * A class which logs the events triggered by an AWS Code Pipeline execution to a single dynamo DB record.
  *
- * Messages sent by AWS Codepipeline do not contain full information about a failure. Therefore, this
- * class is used to track a pipeline execution using Dynamo DB. This class also contains methods for
- * retrieving more detailed information on support services in order to create notifications which provide
- * context to a build failue.
+ * Events received from a AWS Codepipeline Notification do not contain the full information about the cause of a pipeline execution failure.
+ *
+ * The pipelog contains a set of events of interest that have been captured from a specific pipelog execution. Each event
+ * is enriched by querying external services. For example a "commit" event reaches out a Bitbucket or GitHub to fetch
+ * extra information of interest related to the commit. Or, a "Code Deploy" failed event is enriched by querying the
+ * Code Deploy service for diagnostic information.
  *
  * For example: The only time a commit id is available is when the checkout action returns SUCESS. However,
  * the commit author must then be retrieved from bitbucket. The retrieved information is then persisted to
@@ -110,7 +111,8 @@ export class PipeLog {
   }
 
   /**
-   * Loads the outcome from previous pipeline actions from storage.
+   * Loads the outcome from previous pipeline actions from storage. Retuns true if the
+   * pipelog could be loaded. Returns false if the specified record could not be loaded.
    * @param {*} executionId The pipelines executrion id.
    * @param {*} dynamoDB A dynamoDb client object from the AWS SDK.
    */

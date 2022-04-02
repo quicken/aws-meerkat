@@ -185,11 +185,6 @@ test("createPipelineNotification_failed_deployment", async () => {
   const pipeLog = new PipeLog(DB_TABLE, bitBucket, dynamoDbMock);
   await pipeLog.load("mock");
 
-  const codeDeployArn = CodePipelineBot.getDeployArnFromEnv(
-    pipeLog.name,
-    process.env
-  );
-
   const codeBuild = new CodeBuild(codeBuildMock);
   const codeDeploy = new CodeDeploy(codeDeployMock);
   const bot = new CodePipelineBot(pipeLog, codeBuild, codeDeploy);
