@@ -8,6 +8,7 @@ const DYNAMO_ENDPOINT = process.env.DYNAMO_ENDPOINT;
 const GIT_PROVIDER = process.env.GIT_PROVIDER || "";
 const GIT_USERNAME = process.env.GIT_USERNAME || "";
 const GIT_PASSWORD = process.env.GIT_PASSWORD || "";
+const TRACE_EVENTS = process.env.TRACE_EVENTS || false;
 
 const CODE_PROVIDER =
   GIT_PROVIDER.toLowerCase() === "bitbucket"
@@ -26,6 +27,9 @@ export const handler: SNSHandler = async (
   event: SNSEvent,
   context?: Context
 ) => {
-  console.log("v1.3.0");
+  console.log("v1.3.1");
+  if (TRACE_EVENTS) {
+    console.log(event.Records[0].Sns.Message);
+  }
   await meerkat.main(event);
 };
