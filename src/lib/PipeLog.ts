@@ -114,7 +114,7 @@ export class PipeLog {
    * @param {*} executionId The pipelines executrion id.
    * @param {*} dynamoDB A dynamoDb client object from the AWS SDK.
    */
-  load = async (executionId: string): Promise<void> => {
+  load = async (executionId: string): Promise<boolean> => {
     this.executionId = executionId;
 
     const params = {
@@ -126,15 +126,15 @@ export class PipeLog {
     const command = new GetItemCommand(params);
     const { Item } = await this.dynamoDB.send(command);
 
-    /* If a key does not exist dynamo db returns an empty object. */
-    if (Item) {
-      const data = unmarshall(Item);
-      this.executionId = executionId;
-      this.name = data.name;
-      this.commit = data.commit;
-      this._failed = data.failed;
-      this.isNotified = data.isNotified;
-    }
+    if (!Item) return false;
+
+    const data = unmarshall(Item);
+    this.executionId = executionId;
+    this.name = data.name;
+    this.commit = data.commit;
+    this._failed = data.failed;
+    this.isNotified = data.isNotified;
+    return true;
   };
 
   /**
@@ -229,6 +229,8 @@ export class PipeLog {
       }
     }
 
+    await this.save();
+
     return null;
   };
 
@@ -268,7 +270,7 @@ export class PipeLog {
   private handleCodeDeployActionEvent = (event: CodePipelineActionEvent) => {
     /* Process a Deployment Failed Action */
     if (
-      event.detail.type.provider !== "CodeDeploy" &&
+      event.detail.type.provider !== "CodeDeploy" ||
       event.detail.state !== "FAILED"
     ) {
       return null;
