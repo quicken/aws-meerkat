@@ -145,7 +145,7 @@ export class CodePipelineBot extends Bot {
     return null;
   };
 
-  private createSuccessNotification = async (
+  createSuccessNotification = async (
     pipelog: PipeLog
   ): Promise<PipelineNotification> => ({
     type: "PipelineNotification",
@@ -154,7 +154,7 @@ export class CodePipelineBot extends Bot {
     successfull: true,
   });
 
-  private createFailureNotification = async (
+  createFailureNotification = async (
     pipelog: PipeLog
   ): Promise<PipelineNotification> => {
     const notification: PipelineNotification = {

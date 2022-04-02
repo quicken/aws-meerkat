@@ -189,24 +189,9 @@ test("createPipelineNotification_failed_deployment", async () => {
   const codeDeploy = new CodeDeploy(codeDeployMock);
   const bot = new CodePipelineBot(pipeLog, codeBuild, codeDeploy);
 
-  const notification = await bot.createPipelineNotification(pipeLog);
+  const notification = await bot.createFailureNotification(pipeLog);
 
   expect(notification.name).toBe("meerkat");
   expect(notification.successfull).toBe(false);
   expect(notification.failureDetail?.type).toBe("CodeDeploy");
 });
-
-const pseudo_implementation = async () => {
-  const pipelog = new PipeLog(DB_TABLE, bitBucket, dynamoDbMock);
-  const deployArn = CodePipelineBot.getDeployArnFromEnv(
-    pipelog.name,
-    process.env
-  );
-  const codeDeployConfig = await CodeDeploy.createClientConfig(deployArn);
-
-  const codeDeploy = new CodeDeploy(new CodeDeployClient(codeDeployConfig));
-  const codeBuild = new CodeBuild(new CodeBuildClient({}));
-  const pipebot = new CodePipelineBot(pipelog, codeBuild, codeDeploy);
-
-  //const notification = await pipebot.handleEvent({});
-};
