@@ -142,6 +142,7 @@ export class Meerkat {
         return await this.createCodePipelineBot(rawMessage);
       }
     }
+
     return new SimpleBot();
   };
 

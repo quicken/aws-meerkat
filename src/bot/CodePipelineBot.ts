@@ -91,6 +91,7 @@ export class CodePipelineBot extends Bot {
 
   private handleActionEvent = async (event: CodePipelineActionEvent) => {
     await this.pipeLog.handlePipelineAction(event);
+
     if (!this.pipeLog.isFailed) {
       return null;
     }
