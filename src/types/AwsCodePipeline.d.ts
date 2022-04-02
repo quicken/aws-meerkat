@@ -26,7 +26,7 @@ export type CodePipelineExecutionEvent = CodePipelineEvent & {
   detailType: "CodePipeline Pipeline Execution State Change";
   detail: {
     "execution-trigger"?: {
-      "trigger-type": "Webhook";
+      "trigger-type": "Webhook" | "StartPipelineExecution";
       "trigger-detail": string;
     };
     state: "STARTED" | "SUCCEEDED" | "FAILED";
