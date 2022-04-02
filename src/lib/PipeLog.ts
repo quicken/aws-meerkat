@@ -212,7 +212,7 @@ export class PipeLog {
         const commitId = url.searchParams.get("Commit") || "";
 
         this.commit = await this._codeProvider.fetchCommit(repo, commitId);
-
+        await this.save();
         break;
       }
 
@@ -227,11 +227,11 @@ export class PipeLog {
         };
         this._failed.push(checkout);
 
+        await this.save();
+
         return checkout;
       }
     }
-
-    await this.save();
 
     return null;
   };
@@ -241,7 +241,9 @@ export class PipeLog {
    * @param message
    * @returns
    */
-  private handleCodeBuildActionEvent = (event: CodePipelineActionEvent) => {
+  private handleCodeBuildActionEvent = async (
+    event: CodePipelineActionEvent
+  ) => {
     if (
       event.detail.type.provider !== "CodeBuild" ||
       event.detail.state !== "FAILED"
@@ -261,6 +263,8 @@ export class PipeLog {
     };
 
     this._failed.push(build);
+    await this.save();
+
     return build;
   };
 
@@ -269,7 +273,9 @@ export class PipeLog {
    * @param message
    * @returns
    */
-  private handleCodeDeployActionEvent = (event: CodePipelineActionEvent) => {
+  private handleCodeDeployActionEvent = async (
+    event: CodePipelineActionEvent
+  ) => {
     /* Process a Deployment Failed Action */
     if (
       event.detail.type.provider !== "CodeDeploy" ||
@@ -293,6 +299,7 @@ export class PipeLog {
     };
 
     this._failed.push(deploy);
+    await this.save();
     return deploy;
   };
 }

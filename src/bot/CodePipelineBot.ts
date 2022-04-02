@@ -85,18 +85,15 @@ export class CodePipelineBot extends Bot {
   };
 
   private handleExecutionEvent = async (event: CodePipelineExecutionEvent) => {
-    if (event.detail.state !== "SUCCEEDED") return null;
-    return this.createPipelineNotification(this.pipeLog);
+    if (event.detail.state === "SUCCEEDED" || event.detail.state === "FAILED") {
+      return this.createPipelineNotification(this.pipeLog);
+    }
+    return null;
   };
 
   private handleActionEvent = async (event: CodePipelineActionEvent) => {
     await this.pipeLog.handlePipelineAction(event);
-
-    if (!this.pipeLog.isFailed) {
-      return null;
-    }
-
-    return this.createPipelineNotification(this.pipeLog);
+    return null;
   };
 
   createPipelineNotification = async (pipelog: PipeLog) => {

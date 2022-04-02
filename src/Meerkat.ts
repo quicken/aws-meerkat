@@ -2,7 +2,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { CodeDeployClient } from "@aws-sdk/client-codedeploy";
 import { CodeBuildClient } from "@aws-sdk/client-codebuild";
 import { CodePipelineEvent } from "./types/AwsCodePipeline";
-import { RawMessage } from "./types/common";
+import { Notification, RawMessage } from "./types/common";
 import { Chat } from "./chat/Chat";
 import { Bot } from "./bot/Bot";
 import { SimpleBot } from "./bot/SimpleBot";
@@ -109,15 +109,18 @@ export class Meerkat {
    * @param rawMessage The raw message that should be mapped to a notification.
    * @returns A notification or null if no notification should or can be sent.
    */
-  handleMessage = async (rawMessage: RawMessage) => {
+  handleMessage = async (
+    rawMessage: RawMessage
+  ): Promise<Notification | null> => {
     const bot = await this.botFactory(rawMessage);
     const notification = await bot.handleMessage(rawMessage);
     if (notification) {
       const chat = this.chatFactory(this.chatService);
       await chat.sendNotification(notification);
       await bot.notificationSent();
+      return notification;
     }
-    return notification;
+    return null;
   };
 
   /**
