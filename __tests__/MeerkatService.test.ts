@@ -13,7 +13,10 @@ import {
   ITEM_SUCCESSFULL_PIPE_LOG,
 } from "./sample/aws/dynamoDb";
 import { CLOUDWATCH_ALARM } from "./sample/aws/cloudwatch";
-import { PIPELINE_EXECUTION_SUCCEEDED } from "./sample/pipeline/SuccessFlowEvents";
+import {
+  PIPELINE_EXECUTION_SUCCEEDED,
+  PIPELINE_STAGE_BUILD_ACTION_BUILD_STARTED,
+} from "./sample/pipeline/SuccessFlowEvents";
 
 const CHAT_SERVICE = "discord";
 
@@ -103,4 +106,18 @@ test("handle_code_pipeline_message_success", async () => {
     const pipelineNotification = notification as PipelineNotification;
     expect(1).toBe(1);
   }
+});
+
+test("handle_code_pipeline_stage_build_action_build_started", async () => {
+  dynamoDbMock.on(GetItemCommand).resolves(ITEM_SUCCESSFULL_PIPE_LOG);
+  const meerkat = new Meerkat(dynamoDbMock, bitbucket, CHAT_SERVICE);
+  const rawMessage = {
+    isJson: true,
+    subject: "",
+    body: PIPELINE_STAGE_BUILD_ACTION_BUILD_STARTED,
+  };
+
+  const notification = await meerkat.handleMessage(rawMessage);
+
+  expect(notification).toBeNull();
 });

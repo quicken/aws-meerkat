@@ -64,6 +64,36 @@ export class Meerkat {
   };
 
   /**
+   * Attempt to convert a SNS Topic Subscription event received by AWS Lambda to a rawMessage.
+   *
+   * Received messages from SNS are in "Processed event" format see this link:
+   * https://docs.aws.amazon.com/codepipeline/latest/userguide/detect-state-changes-cloudwatch-events.html
+   *
+   *
+   * @param event An amazon SNS event payload received by AWS Lambda.
+   * @returns A raw message.
+   */
+  parseSnsEvent = (event: SNSEvent) => {
+    const rawMessage: RawMessage = {
+      isJson: false,
+      subject: "",
+      body: "",
+    };
+
+    try {
+      rawMessage.isJson = true;
+      rawMessage.subject = event.Records[0].Sns.Subject;
+      rawMessage.body = JSON.parse(event.Records[0].Sns.Message);
+    } catch (err: any) {
+      rawMessage.isJson = false;
+      rawMessage.subject = event.Records[0].Sns.Subject;
+      rawMessage.body = event.Records[0].Sns.Message;
+    }
+
+    return rawMessage;
+  };
+
+  /**
    * Creates a notification from a rawMessage. If the rawMessage
    * can not be mapped to a notification then null is returned.
    *
@@ -88,36 +118,6 @@ export class Meerkat {
       await bot.notificationSent();
     }
     return notification;
-  };
-
-  /**
-   * Attempt to convert a SNS Topic Subscription event received by AWS Lambda to a rawMessage.
-   *
-   * Received messages from SNS are in "Processed event" format see this link:
-   * https://docs.aws.amazon.com/codepipeline/latest/userguide/detect-state-changes-cloudwatch-events.html
-   *
-   *
-   * @param event An amazon SNS event payload received by AWS Lambda.
-   * @returns A raw message.
-   */
-  parseSnsEvent = (event: SNSEvent) => {
-    const rawMessage: RawMessage = {
-      isJson: false,
-      subject: "",
-      body: "",
-    };
-
-    try {
-      rawMessage.isJson = true;
-      rawMessage.subject = "";
-      rawMessage.body = JSON.parse(event.Records[0].Sns.Message);
-    } catch (err: any) {
-      rawMessage.isJson = false;
-      rawMessage.subject = event.Records[0].Sns.Subject;
-      rawMessage.body = event.Records[0].Sns.Message;
-    }
-
-    return rawMessage;
   };
 
   /**
