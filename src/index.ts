@@ -27,7 +27,7 @@ export const handler: SNSHandler = async (
   event: SNSEvent,
   context?: Context
 ) => {
-  console.log("v1.3.1");
+  console.log("v1.4.1");
   if (TRACE_EVENTS) {
     console.log(event.Records[0].Sns.Message);
   }

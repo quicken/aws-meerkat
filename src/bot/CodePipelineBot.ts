@@ -84,27 +84,87 @@ export class CodePipelineBot extends Bot {
     return null;
   };
 
+  /**
+   * Sends notifications when an entire pipeline execution has either succeeded or
+   * failed. However, due to fact that events can be processed out of order this method
+   * does NOT send our notifications if the source stage contains the word "build".
+   *
+   * In those cases we rely on the action event to send the notification.
+   *
+   * This is a workaround for the following scenario. If all failure notifications
+   * are based on a failed pipeline action event then a code deploy failure will send
+   * one notification for each autodeployment group which spams discord. Alternatively if
+   * we use the pipeline execution event then due to a race condition the code build notification
+   * never includes any metat data since the action event sometimes runs after the pipeline execution event.
+   *
+   * This could also be because of the time it takes the action handle to retrieve meta data. As such it may
+   * be the case that the action event is still fetching data by the time the execution event is fired.
+   *
+   * For the same reason a "sent" notification is not effective in preventing multiple messages from being sent.
+   *
+   * Another option worth exploring is to implement a "sleep" function so that a failed pipeline execution event handlder
+   * tries to give the action events enough time to write data before the execution event then loads the pipelog.
+   *
+   * Either way they are all shitty options..
+   *
+   * @param event
+   * @returns
+   */
   private handleExecutionEvent = async (event: CodePipelineExecutionEvent) => {
-    if (event.detail.state === "SUCCEEDED" || event.detail.state === "FAILED") {
-      return this.createPipelineNotification(this.pipeLog);
+    switch (event.detail.state) {
+      case "SUCCEEDED":
+        return this.createSuccessNotification(this.pipeLog);
+      case "FAILED": {
+        if (
+          event.additionalAttributes.failedStage &&
+          event.additionalAttributes.failedStage.toLowerCase().includes("build")
+        ) {
+          return null;
+        } else {
+          return this.createFailureNotification(this.pipeLog);
+        }
+      }
+    }
+
+    return null;
+  };
+
+  /**
+   * Please see the notes for the handleExecutionEvent
+   * @param event
+   * @returns
+   */
+  private handleActionEvent = async (event: CodePipelineActionEvent) => {
+    await this.pipeLog.handlePipelineAction(event);
+    if (
+      event.detail.type.provider === "CodeBuild" &&
+      event.detail.state === "FAILED"
+    ) {
+      return this.createFailureNotification(this.pipeLog);
     }
     return null;
   };
 
-  private handleActionEvent = async (event: CodePipelineActionEvent) => {
-    await this.pipeLog.handlePipelineAction(event);
-    return null;
-  };
+  private createSuccessNotification = async (
+    pipelog: PipeLog
+  ): Promise<PipelineNotification> => ({
+    type: "PipelineNotification",
+    name: pipelog.name,
+    commit: pipelog.commit,
+    successfull: true,
+  });
 
-  createPipelineNotification = async (pipelog: PipeLog) => {
+  private createFailureNotification = async (
+    pipelog: PipeLog
+  ): Promise<PipelineNotification> => {
     const notification: PipelineNotification = {
       type: "PipelineNotification",
       name: pipelog.name,
       commit: pipelog.commit,
-      successfull: !pipelog.isFailed,
+      successfull: false,
     };
 
-    if (pipelog.isFailed && pipelog.failed) {
+    if (pipelog.failed) {
       const logEntry = { ...pipelog.failed };
       if (logEntry.type === "build") {
         notification.failureDetail = await this.fetchCodeBuildInfo(logEntry.id);
