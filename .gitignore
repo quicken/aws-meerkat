@@ -108,4 +108,4 @@ dist
 /**/docs/sdk/
 
 # Ignore Dynameo Db Datastore mounted by docker.
-_nosql/data/**
+_nosql/data/*.db
