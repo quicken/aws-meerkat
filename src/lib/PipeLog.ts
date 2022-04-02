@@ -239,7 +239,7 @@ export class PipeLog {
    */
   private handleCodeBuildActionEvent = (event: CodePipelineActionEvent) => {
     if (
-      event.detail.type.provider !== "CodeBuild" &&
+      event.detail.type.provider !== "CodeBuild" ||
       event.detail.state !== "FAILED"
     ) {
       return null;
