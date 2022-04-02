@@ -93,7 +93,7 @@ beforeEach(async () => {
   await DYNAMO_DB.send(deleteItemCommand);
 });
 
-test("integration_pipeline-success", async () => {
+test("integration_pipeline-fail-code-deploy", async () => {
   if (!RUN_INTEGRATION_TESTS) {
     console.info(
       "\x1b[33m%s\x1b[0m",
