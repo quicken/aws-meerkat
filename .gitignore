@@ -106,3 +106,6 @@ dist
 
 # Ignore generated type docs
 /**/docs/sdk/
+
+# Ignore Dynameo Db Datastore mounted by docker.
+_nosql/data/**
