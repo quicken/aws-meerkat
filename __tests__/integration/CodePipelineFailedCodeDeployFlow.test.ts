@@ -99,7 +99,7 @@ test("integration_pipeline-success", async () => {
       "\x1b[33m%s\x1b[0m",
       "INTEGRATION_TESTS are disabled. Skipping all integration tests."
     );
-    return true;
+    return;
   }
   codeBuildMock.on(BatchGetBuildsCommand).resolves(SAMPLE_BATCH_BUILDS);
   codeDeployMock.on(ListDeploymentTargetsCommand).resolves(AWS_LIST_TARGETS);
@@ -109,7 +109,7 @@ test("integration_pipeline-success", async () => {
 
   const meerkat = new Meerkat(DYNAMO_DB, bitBucket, "discord");
 
-  const events = getPipelineSuccessFlow();
+  const events = getCodePipelineFailedCodeDeployFlow();
   let previousNotification: Notification | null = null;
   for await (const event of events) {
     const rawMessage: RawMessage = {
@@ -128,85 +128,36 @@ test("integration_pipeline-success", async () => {
   if (previousNotification) {
     expect(previousNotification.type).toBe("PipelineNotification");
     const pipelineNotification = previousNotification as PipelineNotification;
-    expect(pipelineNotification.successfull).toBe(true);
+    expect(pipelineNotification.successfull).toBe(false);
+    expect(pipelineNotification.failureDetail?.type).toBe("CodeDeploy");
   } else {
     expect(previousNotification).not.toBeNull();
   }
 });
 
 /**
- * An array of events captured from a successfull code pipleine execution.
+ * An array of events captured from a failed code pipleine execution due to a broken code deployment.
  * 1) Checkout Out
  * 2) Build with Code Build.
- * 3) Deploy with Code Deploy to multiple target groups.
+ * 3) Failed  Code Deploment to multiple target groups.
  * @returns
  */
-const getPipelineSuccessFlow = () => {
+
+const getCodePipelineFailedCodeDeployFlow = () => {
   const event: (
     | CodePipelineExecutionEvent
     | CodePipelineActionEvent
     | CodePipelineStageEvent
   )[] = [];
+
   /* ===========================================================*/
-  /* 2022-04-02T12:30:50.159+10:00 */
-  event.push({
-    account: "000000000000",
-    detailType: "CodePipeline Action Execution State Change",
-    region: "ap-southeast-2",
-    source: "aws.codepipeline",
-    time: "2022-04-02T02:30:46Z",
-    notificationRuleArn:
-      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
-    detail: {
-      pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
-      stage: "Source",
-      action: "Source",
-      state: "STARTED",
-      region: "ap-southeast-2",
-      type: {
-        owner: "AWS",
-        provider: "CodeStarSourceConnection",
-        category: "Source",
-        version: "1",
-      },
-      version: 16,
-    },
-    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
-    additionalAttributes: {},
-  });
-  /* ===========================================================*/
-  /* 2022-04-02T12:30:50.805+10:00 */
-  event.push({
-    account: "000000000000",
-    detailType: "CodePipeline Pipeline Execution State Change",
-    region: "ap-southeast-2",
-    source: "aws.codepipeline",
-    time: "2022-04-02T02:30:46Z",
-    notificationRuleArn:
-      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
-    detail: {
-      pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
-      "execution-trigger": {
-        "trigger-type": "StartPipelineExecution",
-        "trigger-detail":
-          "arn:aws:sts::000000000000:assumed-role/AdminRole/marcel",
-      },
-      state: "STARTED",
-      version: 16,
-    },
-    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
-    additionalAttributes: {},
-  });
-  /* ===========================================================*/
-  /* 2022-04-02T12:30:53.454 */
+  /* 2022-04-02T08:08:35.983Z */
   event.push({
     account: "000000000000",
     detailType: "CodePipeline Stage Execution State Change",
     region: "ap-southeast-2",
     source: "aws.codepipeline",
-    time: "2022-04-02T02:30:46Z",
+    time: "2022-04-02T08:08:28Z",
     notificationRuleArn:
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
@@ -222,13 +173,13 @@ const getPipelineSuccessFlow = () => {
     },
   });
   /* ===========================================================*/
-  /* 2022-04-02T02:31:13.931 */
+  /* 2022-04-02T08:08:52.478 */
   event.push({
     account: "000000000000",
     detailType: "CodePipeline Action Execution State Change",
     region: "ap-southeast-2",
     source: "aws.codepipeline",
-    time: "2022-04-02T02:31:00Z",
+    time: "2022-04-02T08:08:47Z",
     notificationRuleArn:
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
@@ -241,7 +192,7 @@ const getPipelineSuccessFlow = () => {
           name: "SourceArtifact",
           s3location: {
             bucket: "meerkat-artifact",
-            key: "meerkat/SourceArti/xnnVCA4",
+            key: "meerkat/SourceArti/rC0O0p5",
           },
         },
       ],
@@ -259,13 +210,13 @@ const getPipelineSuccessFlow = () => {
     additionalAttributes: {},
   });
   /* ===========================================================*/
-  /* 2022-04-02T12:31:14.150 */
+  /* 2022-04-02T08:08:53.619 */
   event.push({
     account: "000000000000",
     detailType: "CodePipeline Stage Execution State Change",
     region: "ap-southeast-2",
     source: "aws.codepipeline",
-    time: "2022-04-02T02:30:59Z",
+    time: "2022-04-02T08:08:46Z",
     notificationRuleArn:
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
@@ -281,13 +232,87 @@ const getPipelineSuccessFlow = () => {
     },
   });
   /* ===========================================================*/
-  /* 2022-04-02T12:31:14.307 */
+  /* 2022-04-02T08:08:36.828 */
+  event.push({
+    account: "000000000000",
+    detailType: "CodePipeline Pipeline Execution State Change",
+    region: "ap-southeast-2",
+    source: "aws.codepipeline",
+    time: "2022-04-02T08:08:28Z",
+    notificationRuleArn:
+      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
+    detail: {
+      pipeline: "meerkat",
+      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      "execution-trigger": {
+        "trigger-type": "Webhook",
+        "trigger-detail":
+          "arn:aws:codestar-connections:ap-southeast-2:000000000000:connection/0defde9e-8b96-474b-b276-459c07f5fafd",
+      },
+      state: "STARTED",
+      version: 16,
+    },
+    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
+    additionalAttributes: {},
+  });
+  /* ===========================================================*/
+  /* 2022-04-02T08:08:40.900 */
   event.push({
     account: "000000000000",
     detailType: "CodePipeline Action Execution State Change",
     region: "ap-southeast-2",
     source: "aws.codepipeline",
-    time: "2022-04-02T02:30:59Z",
+    time: "2022-04-02T08:08:28Z",
+    notificationRuleArn:
+      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
+    detail: {
+      pipeline: "meerkat",
+      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      stage: "Source",
+      action: "Source",
+      state: "STARTED",
+      region: "ap-southeast-2",
+      type: {
+        owner: "AWS",
+        provider: "CodeStarSourceConnection",
+        category: "Source",
+        version: "1",
+      },
+      version: 16,
+    },
+    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
+    additionalAttributes: {},
+  });
+  /* ===========================================================*/
+  /* 2022-04-02T08:08:51.331 */
+  event.push({
+    account: "000000000000",
+    detailType: "CodePipeline Stage Execution State Change",
+    region: "ap-southeast-2",
+    source: "aws.codepipeline",
+    time: "2022-04-02T08:08:46Z",
+    notificationRuleArn:
+      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
+    detail: {
+      pipeline: "meerkat",
+      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      state: "SUCCEEDED",
+      stage: "Source",
+      version: 16,
+    },
+    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
+    additionalAttributes: {
+      sourceActions: [],
+    },
+  });
+  /* ===========================================================*/
+  /* 2022-04-02T08:08:51.966 */
+  event.push({
+    account: "000000000000",
+    detailType: "CodePipeline Action Execution State Change",
+    region: "ap-southeast-2",
+    source: "aws.codepipeline",
+    time: "2022-04-02T08:08:46Z",
     notificationRuleArn:
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
@@ -296,17 +321,17 @@ const getPipelineSuccessFlow = () => {
       stage: "Source",
       "execution-result": {
         "external-execution-url":
-          "https://ap-southeast-2.console.aws.amazon.com/codesuite/settings/connections/redirect?connectionArn=arn:aws:codestar-connections:ap-southeast-2:000000000000:connection/0defde9e-8b96-474b-b276-459c07f5fafd&referenceType=COMMIT&FullRepositoryId=project/meerkat&Commit=18e57819e68813fc585368ebd8163ad5e2a3163e",
+          "https://ap-southeast-2.console.aws.amazon.com/codesuite/settings/connections/redirect?connectionArn=arn:aws:codestar-connections:ap-southeast-2:000000000000:connection/0defde9e-8b96-474b-b276-459c07f5fafd&referenceType=COMMIT&FullRepositoryId=project/meerkat&Commit=8e0c6fb80e09020556d271d4cf0bacdab3614fbd",
         "external-execution-summary":
-          '{"ProviderType":"Bitbucket","CommitMessage":"A bit more basic validation\\n"}',
-        "external-execution-id": "18e57819e68813fc585368ebd8163ad5e2a3163e",
+          '{"ProviderType":"Bitbucket","CommitMessage":"Try to break a deployment.\\n"}',
+        "external-execution-id": "8e0c6fb80e09020556d271d4cf0bacdab3614fbd",
       },
       "output-artifacts": [
         {
           name: "SourceArtifact",
           s3location: {
             bucket: "meerkat-artifact",
-            key: "meerkat/SourceArti/xnnVCA4",
+            key: "meerkat/SourceArti/rC0O0p5",
           },
         },
       ],
@@ -325,35 +350,13 @@ const getPipelineSuccessFlow = () => {
     additionalAttributes: {},
   });
   /* ===========================================================*/
-  /* 2022-04-02T12:31:14.852 */
+  /* 2022-04-02T08:17:35.792 */
   event.push({
     account: "000000000000",
     detailType: "CodePipeline Stage Execution State Change",
     region: "ap-southeast-2",
     source: "aws.codepipeline",
-    time: "2022-04-02T02:30:59Z",
-    notificationRuleArn:
-      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
-    detail: {
-      pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
-      state: "SUCCEEDED",
-      stage: "Source",
-      version: 16,
-    },
-    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
-    additionalAttributes: {
-      sourceActions: [],
-    },
-  });
-  /* ===========================================================*/
-  /* 2022-04-02T02:44:29.172 */
-  event.push({
-    account: "000000000000",
-    detailType: "CodePipeline Stage Execution State Change",
-    region: "ap-southeast-2",
-    source: "aws.codepipeline",
-    time: "2022-04-02T02:44:20Z",
+    time: "2022-04-02T08:17:30Z",
     notificationRuleArn:
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
@@ -369,420 +372,13 @@ const getPipelineSuccessFlow = () => {
     },
   });
   /* ===========================================================*/
-  /* 2022-04-02T02:44:29 */
-  event.push({
-    account: "000000000000",
-    detailType: "CodePipeline Action Execution State Change",
-    region: "ap-southeast-2",
-    source: "aws.codepipeline",
-    time: "2022-04-02T02:44:20Z",
-    notificationRuleArn:
-      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
-    detail: {
-      pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
-      stage: "DeployToExternalAccount",
-      action: "Deploy-BLUE",
-      "input-artifacts": [
-        {
-          name: "BuildArtifact",
-          s3location: {
-            bucket: "meerkat-artifact",
-            key: "meerkat/BuildArtif/Aez6iry",
-          },
-        },
-      ],
-      state: "STARTED",
-      region: "ap-southeast-2",
-      type: {
-        owner: "AWS",
-        provider: "CodeDeploy",
-        category: "Deploy",
-        version: "1",
-      },
-      version: 16,
-    },
-    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
-    additionalAttributes: {},
-  });
-  /* ===========================================================*/
-  /* 2022-04-02T12:44:31.318 */
-  event.push({
-    account: "000000000000",
-    detailType: "CodePipeline Action Execution State Change",
-    region: "ap-southeast-2",
-    source: "aws.codepipeline",
-    time: "2022-04-02T02:44:21Z",
-    notificationRuleArn:
-      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
-    detail: {
-      pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
-      stage: "DeployToExternalAccount",
-      action: "Deploy-RED",
-      "input-artifacts": [
-        {
-          name: "BuildArtifact",
-          s3location: {
-            bucket: "meerkat-artifact",
-            key: "meerkat/BuildArtif/Aez6iry",
-          },
-        },
-      ],
-      state: "STARTED",
-      region: "ap-southeast-2",
-      type: {
-        owner: "AWS",
-        provider: "CodeDeploy",
-        category: "Deploy",
-        version: "1",
-      },
-      version: 16,
-    },
-    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
-    additionalAttributes: {},
-  });
-  /* ===========================================================*/
-  /* 2022-04-02T02:44:34.183 */
-  event.push({
-    account: "000000000000",
-    detailType: "CodePipeline Action Execution State Change",
-    region: "ap-southeast-2",
-    source: "aws.codepipeline",
-    time: "2022-04-02T02:44:20Z",
-    notificationRuleArn:
-      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
-    detail: {
-      pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
-      stage: "DeployToExternalAccount",
-      action: "Deploy-ORANGE",
-      "input-artifacts": [
-        {
-          name: "BuildArtifact",
-          s3location: {
-            bucket: "meerkat-artifact",
-            key: "meerkat/BuildArtif/Aez6iry",
-          },
-        },
-      ],
-      state: "STARTED",
-      region: "ap-southeast-2",
-      type: {
-        owner: "AWS",
-        provider: "CodeDeploy",
-        category: "Deploy",
-        version: "1",
-      },
-      version: 16,
-    },
-    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
-    additionalAttributes: {},
-  });
-  /* ===========================================================*/
-  /* 2022-04-02T02:45:23.649 */
-  event.push({
-    account: "000000000000",
-    detailType: "CodePipeline Action Execution State Change",
-    region: "ap-southeast-2",
-    source: "aws.codepipeline",
-    time: "2022-04-02T02:44:21Z",
-    notificationRuleArn:
-      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
-    detail: {
-      pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
-      stage: "DeployToExternalAccount",
-      action: "Deploy-GREEN",
-      "input-artifacts": [
-        {
-          name: "BuildArtifact",
-          s3location: {
-            bucket: "meerkat-artifact",
-            key: "meerkat/BuildArtif/Aez6iry",
-          },
-        },
-      ],
-      state: "STARTED",
-      region: "ap-southeast-2",
-      type: {
-        owner: "AWS",
-        provider: "CodeDeploy",
-        category: "Deploy",
-        version: "1",
-      },
-      version: 16,
-    },
-    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
-    additionalAttributes: {},
-  });
-  /* ===========================================================*/
-  /* 2022-04-02T02:45:25.855 */
-  event.push({
-    account: "000000000000",
-    detailType: "CodePipeline Action Execution State Change",
-    region: "ap-southeast-2",
-    source: "aws.codepipeline",
-    time: "2022-04-02T02:44:20Z",
-    notificationRuleArn:
-      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
-    detail: {
-      pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
-      stage: "DeployToExternalAccount",
-      action: "Deploy-BLUE",
-      "input-artifacts": [
-        {
-          name: "BuildArtifact",
-          s3location: {
-            bucket: "meerkat-artifact",
-            key: "meerkat/BuildArtif/Aez6iry",
-          },
-        },
-      ],
-      state: "STARTED",
-      region: "ap-southeast-2",
-      type: {
-        owner: "AWS",
-        provider: "CodeDeploy",
-        category: "Deploy",
-        version: "1",
-      },
-      version: 16,
-    },
-    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
-    additionalAttributes: {},
-  });
-  /* ===========================================================*/
-  /* 2022-04-02T02:45:30.681 */
-  event.push({
-    account: "000000000000",
-    detailType: "CodePipeline Action Execution State Change",
-    region: "ap-southeast-2",
-    source: "aws.codepipeline",
-    time: "2022-04-02T02:44:21Z",
-    notificationRuleArn:
-      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
-    detail: {
-      pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
-      stage: "DeployToExternalAccount",
-      action: "Deploy-RED",
-      "input-artifacts": [
-        {
-          name: "BuildArtifact",
-          s3location: {
-            bucket: "meerkat-artifact",
-            key: "meerkat/BuildArtif/Aez6iry",
-          },
-        },
-      ],
-      state: "STARTED",
-      region: "ap-southeast-2",
-      type: {
-        owner: "AWS",
-        provider: "CodeDeploy",
-        category: "Deploy",
-        version: "1",
-      },
-      version: 16,
-    },
-    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
-    additionalAttributes: {},
-  });
-  /* ===========================================================*/
-  /* 2022-04-02T02:45:39.569 */
-  event.push({
-    account: "000000000000",
-    detailType: "CodePipeline Action Execution State Change",
-    region: "ap-southeast-2",
-    source: "aws.codepipeline",
-    time: "2022-04-02T02:44:20Z",
-    notificationRuleArn:
-      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
-    detail: {
-      pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
-      stage: "DeployToExternalAccount",
-      action: "Deploy-ORANGE",
-      "input-artifacts": [
-        {
-          name: "BuildArtifact",
-          s3location: {
-            bucket: "meerkat-artifact",
-            key: "meerkat/BuildArtif/Aez6iry",
-          },
-        },
-      ],
-      state: "STARTED",
-      region: "ap-southeast-2",
-      type: {
-        owner: "AWS",
-        provider: "CodeDeploy",
-        category: "Deploy",
-        version: "1",
-      },
-      version: 16,
-    },
-    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
-    additionalAttributes: {},
-  });
-  /* ===========================================================*/
-  /* 2022-04-02T02:47:27.169 */
-  event.push({
-    account: "000000000000",
-    detailType: "CodePipeline Action Execution State Change",
-    region: "ap-southeast-2",
-    source: "aws.codepipeline",
-    time: "2022-04-02T02:44:20Z",
-    notificationRuleArn:
-      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
-    detail: {
-      pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
-      stage: "DeployToExternalAccount",
-      action: "Deploy-ORANGE",
-      "input-artifacts": [
-        {
-          name: "BuildArtifact",
-          s3location: {
-            bucket: "meerkat-artifact",
-            key: "meerkat/BuildArtif/Aez6iry",
-          },
-        },
-      ],
-      state: "STARTED",
-      region: "ap-southeast-2",
-      type: {
-        owner: "AWS",
-        provider: "CodeDeploy",
-        category: "Deploy",
-        version: "1",
-      },
-      version: 16,
-    },
-    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
-    additionalAttributes: {},
-  });
-  /* ===========================================================*/
-  /* 2022-04-02T12:47:35.289 */
-  event.push({
-    account: "000000000000",
-    detailType: "CodePipeline Action Execution State Change",
-    region: "ap-southeast-2",
-    source: "aws.codepipeline",
-    time: "2022-04-02T02:44:21Z",
-    notificationRuleArn:
-      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
-    detail: {
-      pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
-      stage: "DeployToExternalAccount",
-      action: "Deploy-GREEN",
-      "input-artifacts": [
-        {
-          name: "BuildArtifact",
-          s3location: {
-            bucket: "meerkat-artifact",
-            key: "meerkat/BuildArtif/Aez6iry",
-          },
-        },
-      ],
-      state: "STARTED",
-      region: "ap-southeast-2",
-      type: {
-        owner: "AWS",
-        provider: "CodeDeploy",
-        category: "Deploy",
-        version: "1",
-      },
-      version: 16,
-    },
-    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
-    additionalAttributes: {},
-  });
-  /* ===========================================================*/
-  /* 2022-04-02T02:47:39 */
-  event.push({
-    account: "000000000000",
-    detailType: "CodePipeline Action Execution State Change",
-    region: "ap-southeast-2",
-    source: "aws.codepipeline",
-    time: "2022-04-02T02:44:21Z",
-    notificationRuleArn:
-      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
-    detail: {
-      pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
-      stage: "DeployToExternalAccount",
-      action: "Deploy-RED",
-      "input-artifacts": [
-        {
-          name: "BuildArtifact",
-          s3location: {
-            bucket: "meerkat-artifact",
-            key: "meerkat/BuildArtif/Aez6iry",
-          },
-        },
-      ],
-      state: "STARTED",
-      region: "ap-southeast-2",
-      type: {
-        owner: "AWS",
-        provider: "CodeDeploy",
-        category: "Deploy",
-        version: "1",
-      },
-      version: 16,
-    },
-    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
-    additionalAttributes: {},
-  });
-  /* ===========================================================*/
-  /* 2022-04-02T02:47:41.221 */
-  event.push({
-    account: "000000000000",
-    detailType: "CodePipeline Action Execution State Change",
-    region: "ap-southeast-2",
-    source: "aws.codepipeline",
-    time: "2022-04-02T02:44:20Z",
-    notificationRuleArn:
-      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
-    detail: {
-      pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
-      stage: "DeployToExternalAccount",
-      action: "Deploy-BLUE",
-      "input-artifacts": [
-        {
-          name: "BuildArtifact",
-          s3location: {
-            bucket: "meerkat-artifact",
-            key: "meerkat/BuildArtif/Aez6iry",
-          },
-        },
-      ],
-      state: "STARTED",
-      region: "ap-southeast-2",
-      type: {
-        owner: "AWS",
-        provider: "CodeDeploy",
-        category: "Deploy",
-        version: "1",
-      },
-      version: 16,
-    },
-    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
-    additionalAttributes: {},
-  });
-  /* ===========================================================*/
-  /* 2022-04-02T02:44:28.958 */
+  /* 2022-04-02T08:17:39.531 */
   event.push({
     account: "000000000000",
     detailType: "CodePipeline Stage Execution State Change",
     region: "ap-southeast-2",
     source: "aws.codepipeline",
-    time: "2022-04-02T02:44:20Z",
+    time: "2022-04-02T08:17:30Z",
     notificationRuleArn:
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
@@ -798,13 +394,124 @@ const getPipelineSuccessFlow = () => {
     },
   });
   /* ===========================================================*/
-  /* 2022-04-02T02:44:29.829 */
+  /* 2022-04-02T08:17:39.871 */
   event.push({
     account: "000000000000",
     detailType: "CodePipeline Action Execution State Change",
     region: "ap-southeast-2",
     source: "aws.codepipeline",
-    time: "2022-04-02T02:44:20Z",
+    time: "2022-04-02T08:17:31Z",
+    notificationRuleArn:
+      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
+    detail: {
+      pipeline: "meerkat",
+      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      stage: "DeployToExternalAccount",
+      action: "Deploy-GREEN",
+      "input-artifacts": [
+        {
+          name: "BuildArtifact",
+          s3location: {
+            bucket: "meerkat-artifact",
+            key: "meerkat/BuildArtif/7KbyKbn",
+          },
+        },
+      ],
+      state: "STARTED",
+      region: "ap-southeast-2",
+      type: {
+        owner: "AWS",
+        provider: "CodeDeploy",
+        category: "Deploy",
+        version: "1",
+      },
+      version: 16,
+    },
+    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
+    additionalAttributes: {},
+  });
+  /* ===========================================================*/
+  /* 2022-04-02T08:17:40.266 */
+  event.push({
+    account: "000000000000",
+    detailType: "CodePipeline Action Execution State Change",
+    region: "ap-southeast-2",
+    source: "aws.codepipeline",
+    time: "2022-04-02T08:17:30Z",
+    notificationRuleArn:
+      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
+    detail: {
+      pipeline: "meerkat",
+      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      stage: "DeployToExternalAccount",
+      action: "Deploy-ORANGE",
+      "input-artifacts": [
+        {
+          name: "BuildArtifact",
+          s3location: {
+            bucket: "meerkat-artifact",
+            key: "meerkat/BuildArtif/7KbyKbn",
+          },
+        },
+      ],
+      state: "STARTED",
+      region: "ap-southeast-2",
+      type: {
+        owner: "AWS",
+        provider: "CodeDeploy",
+        category: "Deploy",
+        version: "1",
+      },
+      version: 16,
+    },
+    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
+    additionalAttributes: {},
+  });
+  /* ===========================================================*/
+  /* 2022-04-02T08:17:40.439 */
+  event.push({
+    account: "000000000000",
+    detailType: "CodePipeline Action Execution State Change",
+    region: "ap-southeast-2",
+    source: "aws.codepipeline",
+    time: "2022-04-02T08:17:31Z",
+    notificationRuleArn:
+      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
+    detail: {
+      pipeline: "meerkat",
+      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      stage: "DeployToExternalAccount",
+      action: "Deploy-RED",
+      "input-artifacts": [
+        {
+          name: "BuildArtifact",
+          s3location: {
+            bucket: "meerkat-artifact",
+            key: "meerkat/BuildArtif/7KbyKbn",
+          },
+        },
+      ],
+      state: "STARTED",
+      region: "ap-southeast-2",
+      type: {
+        owner: "AWS",
+        provider: "CodeDeploy",
+        category: "Deploy",
+        version: "1",
+      },
+      version: 16,
+    },
+    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
+    additionalAttributes: {},
+  });
+  /* ===========================================================*/
+  /* 2022-04-02T08:17:40.626 */
+  event.push({
+    account: "000000000000",
+    detailType: "CodePipeline Action Execution State Change",
+    region: "ap-southeast-2",
+    source: "aws.codepipeline",
+    time: "2022-04-02T08:17:30Z",
     notificationRuleArn:
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
@@ -814,15 +521,14 @@ const getPipelineSuccessFlow = () => {
       "execution-result": {
         "external-execution-url":
           "https://console.aws.amazon.com/codebuild/home?region=ap-southeast-2#/builds/meerkat-testing:91c87dfe-a901-456f-8b7c-9d1dc497714b/view/new",
-        "external-execution-id":
-          "meerkat-testing:91c87dfe-a901-456f-8b7c-9d1dc497714b",
+        "external-execution-id": "meerkat:db8d0212-7f9a-41cd-a33e-f87c0db3f911",
       },
       "output-artifacts": [
         {
           name: "BuildArtifact",
           s3location: {
             bucket: "meerkat-artifact",
-            key: "meerkat/BuildArtif/Aez6iry",
+            key: "meerkat/BuildArtif/7KbyKbn",
           },
         },
       ],
@@ -841,26 +547,174 @@ const getPipelineSuccessFlow = () => {
     additionalAttributes: {},
   });
   /* ===========================================================*/
-  /* 2022-04-02T02:44:30.234 */
+  /* 2022-04-02T08:23:19.088 */
   event.push({
     account: "000000000000",
     detailType: "CodePipeline Action Execution State Change",
     region: "ap-southeast-2",
     source: "aws.codepipeline",
-    time: "2022-04-02T02:44:21Z",
+    time: "2022-04-02T08:23:12Z",
     notificationRuleArn:
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
       pipeline: "meerkat",
       "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
       stage: "DeployToExternalAccount",
+      "execution-result": {
+        "external-execution-url":
+          "https://console.aws.amazon.com/codedeploy/home?region=ap-southeast-2#/deployments/d-KH37TM9SF",
+        "external-execution-summary": "Deployment d-KH37TM9SF failed",
+        "external-execution-id": "d-KH37TM9SF",
+        "error-code": "JobFailed",
+      },
       action: "Deploy-GREEN",
+      state: "FAILED",
+      region: "ap-southeast-2",
+      type: {
+        owner: "AWS",
+        provider: "CodeDeploy",
+        category: "Deploy",
+        version: "1",
+      },
+      version: 16,
+    },
+    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
+    additionalAttributes: {
+      additionalInformation: "Deployment d-KH37TM9SF failed",
+    },
+  });
+  /* ===========================================================*/
+  /* 2022-04-02T08:23:21.889 */
+  event.push({
+    account: "000000000000",
+    detailType: "CodePipeline Action Execution State Change",
+    region: "ap-southeast-2",
+    source: "aws.codepipeline",
+    time: "2022-04-02T08:23:13Z",
+    notificationRuleArn:
+      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
+    detail: {
+      pipeline: "meerkat",
+      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      stage: "DeployToExternalAccount",
+      "execution-result": {
+        "external-execution-url":
+          "https://console.aws.amazon.com/codedeploy/home?region=ap-southeast-2#/deployments/d-SUP6PC9SF",
+        "external-execution-summary": "Deployment d-SUP6PC9SF failed",
+        "external-execution-id": "d-SUP6PC9SF",
+        "error-code": "JobFailed",
+      },
+      action: "Deploy-BLUE",
+      state: "FAILED",
+      region: "ap-southeast-2",
+      type: {
+        owner: "AWS",
+        provider: "CodeDeploy",
+        category: "Deploy",
+        version: "1",
+      },
+      version: 16,
+    },
+    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
+    additionalAttributes: {
+      additionalInformation: "Deployment d-SUP6PC9SF failed",
+    },
+  });
+  /* ===========================================================*/
+  /* 2022-04-02T08:23:24.263 */
+  event.push({
+    account: "000000000000",
+    detailType: "CodePipeline Action Execution State Change",
+    region: "ap-southeast-2",
+    source: "aws.codepipeline",
+    time: "2022-04-02T08:23:12Z",
+    notificationRuleArn:
+      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
+    detail: {
+      pipeline: "meerkat",
+      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      stage: "DeployToExternalAccount",
+      "execution-result": {
+        "external-execution-url":
+          "https://console.aws.amazon.com/codedeploy/home?region=ap-southeast-2#/deployments/d-QJ1WPX8SF",
+        "external-execution-summary": "Deployment d-QJ1WPX8SF failed",
+        "external-execution-id": "d-QJ1WPX8SF",
+        "error-code": "JobFailed",
+      },
+      action: "Deploy-ORANGE",
+      state: "FAILED",
+      region: "ap-southeast-2",
+      type: {
+        owner: "AWS",
+        provider: "CodeDeploy",
+        category: "Deploy",
+        version: "1",
+      },
+      version: 16,
+    },
+    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
+    additionalAttributes: {
+      additionalInformation: "Deployment d-QJ1WPX8SF failed",
+    },
+  });
+  /* ===========================================================*/
+  /* 2022-04-02T08:23:25.885 */
+  event.push({
+    account: "000000000000",
+    detailType: "CodePipeline Action Execution State Change",
+    region: "ap-southeast-2",
+    source: "aws.codepipeline",
+    time: "2022-04-02T08:23:12Z",
+    notificationRuleArn:
+      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
+    detail: {
+      pipeline: "meerkat",
+      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      stage: "DeployToExternalAccount",
+      "execution-result": {
+        "external-execution-url":
+          "https://console.aws.amazon.com/codedeploy/home?region=ap-southeast-2#/deployments/d-XGTBRT9SF",
+        "external-execution-summary": "Deployment d-XGTBRT9SF failed",
+        "external-execution-id": "d-XGTBRT9SF",
+        "error-code": "JobFailed",
+      },
+      action: "Deploy-RED",
+      state: "FAILED",
+      region: "ap-southeast-2",
+      type: {
+        owner: "AWS",
+        provider: "CodeDeploy",
+        category: "Deploy",
+        version: "1",
+      },
+      version: 16,
+    },
+    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
+    additionalAttributes: {
+      additionalInformation: "Deployment d-XGTBRT9SF failed",
+    },
+  });
+  /* ===========================================================*/
+  /* 2022-04-02T08:17:31 */
+  event.push({
+    account: "000000000000",
+    detailType: "CodePipeline Action Execution State Change",
+    region: "ap-southeast-2",
+    source: "aws.codepipeline",
+    time: "2022-04-02T08:17:31Z",
+    notificationRuleArn:
+      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
+    detail: {
+      pipeline: "meerkat",
+      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      stage: "DeployToExternalAccount",
+      action: "Deploy-BLUE",
       "input-artifacts": [
         {
           name: "BuildArtifact",
           s3location: {
             bucket: "meerkat-artifact",
-            key: "meerkat/BuildArtif/Aez6iry",
+            key: "meerkat/BuildArtif/7KbyKbn",
           },
         },
       ],
@@ -878,181 +732,85 @@ const getPipelineSuccessFlow = () => {
     additionalAttributes: {},
   });
   /* ===========================================================*/
-  /* 2022-04-02T02:58:28.424 */
-  event.push({
-    account: "000000000000",
-    detailType: "CodePipeline Action Execution State Change",
-    region: "ap-southeast-2",
-    source: "aws.codepipeline",
-    time: "2022-04-02T02:58:15Z",
-    notificationRuleArn:
-      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
-    detail: {
-      pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
-      stage: "DeployToExternalAccount",
-      "execution-result": {
-        "external-execution-url":
-          "https://console.aws.amazon.com/codedeploy/home?region=ap-southeast-2#/deployments/d-PYMG003SF",
-        "external-execution-summary": "Deployment Succeeded",
-        "external-execution-id": "d-PYMG003SF",
-      },
-      action: "Deploy-GREEN",
-      state: "SUCCEEDED",
-      region: "ap-southeast-2",
-      type: {
-        owner: "AWS",
-        provider: "CodeDeploy",
-        category: "Deploy",
-        version: "1",
-      },
-      version: 16,
-    },
-    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
-    additionalAttributes: {},
-  });
-  /* ===========================================================*/
-  /* 2022-04-02T12:58:49.285 */
-  event.push({
-    account: "000000000000",
-    detailType: "CodePipeline Action Execution State Change",
-    region: "ap-southeast-2",
-    source: "aws.codepipeline",
-    time: "2022-04-02T02:58:45Z",
-    notificationRuleArn:
-      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
-    detail: {
-      pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
-      stage: "DeployToExternalAccount",
-      "execution-result": {
-        "external-execution-url":
-          "https://console.aws.amazon.com/codedeploy/home?region=ap-southeast-2#/deployments/d-Z3L5D13SF",
-        "external-execution-summary": "Deployment Succeeded",
-        "external-execution-id": "d-Z3L5D13SF",
-      },
-      action: "Deploy-BLUE",
-      state: "SUCCEEDED",
-      region: "ap-southeast-2",
-      type: {
-        owner: "AWS",
-        provider: "CodeDeploy",
-        category: "Deploy",
-        version: "1",
-      },
-      version: 16,
-    },
-    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
-    additionalAttributes: {},
-  });
-  /* ===========================================================*/
-  /* 2022-04-02T02:58:50 */
+  /* 2022-04-02T08:23:18.615 */
   event.push({
     account: "000000000000",
     detailType: "CodePipeline Stage Execution State Change",
     region: "ap-southeast-2",
     source: "aws.codepipeline",
-    time: "2022-04-02T02:58:46Z",
+    time: "2022-04-02T08:23:13Z",
     notificationRuleArn:
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
       pipeline: "meerkat",
       "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
-      state: "SUCCEEDED",
+      state: "FAILED",
       stage: "DeployToExternalAccount",
       version: 16,
     },
     resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
     additionalAttributes: {
-      sourceActions: [],
+      failedActionCount: 4,
+      failedActions: [
+        {
+          action: "Deploy-RED",
+          additionalInformation: "Deployment d-XGTBRT9SF failed",
+        },
+        {
+          action: "Deploy-GREEN",
+          additionalInformation: "Deployment d-KH37TM9SF failed",
+        },
+        {
+          action: "Deploy-BLUE",
+          additionalInformation: "Deployment d-SUP6PC9SF failed",
+        },
+        {
+          action: "Deploy-ORANGE",
+          additionalInformation: "Deployment d-QJ1WPX8SF failed",
+        },
+      ],
     },
   });
   /* ===========================================================*/
-  /* 2022-04-02T02:58:50.735 */
+  /* 2022-04-02T08:23:24.509 */
   event.push({
     account: "000000000000",
     detailType: "CodePipeline Pipeline Execution State Change",
     region: "ap-southeast-2",
     source: "aws.codepipeline",
-    time: "2022-04-02T02:58:46Z",
+    time: "2022-04-02T08:23:13Z",
     notificationRuleArn:
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
       pipeline: "meerkat",
       "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
-      state: "SUCCEEDED",
+      state: "FAILED",
       version: 16,
     },
     resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
-    additionalAttributes: {},
-  });
-  /* ===========================================================*/
-  /* 2022-04-02T02:58:56.620 */
-  event.push({
-    account: "000000000000",
-    detailType: "CodePipeline Action Execution State Change",
-    region: "ap-southeast-2",
-    source: "aws.codepipeline",
-    time: "2022-04-02T02:58:46Z",
-    notificationRuleArn:
-      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
-    detail: {
-      pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
-      stage: "DeployToExternalAccount",
-      "execution-result": {
-        "external-execution-url":
-          "https://console.aws.amazon.com/codedeploy/home?region=ap-southeast-2#/deployments/d-NKBIGJ3SF",
-        "external-execution-summary": "Deployment Succeeded",
-        "external-execution-id": "d-NKBIGJ3SF",
-      },
-      action: "Deploy-ORANGE",
-      state: "SUCCEEDED",
-      region: "ap-southeast-2",
-      type: {
-        owner: "AWS",
-        provider: "CodeDeploy",
-        category: "Deploy",
-        version: "1",
-      },
-      version: 16,
+    additionalAttributes: {
+      failedActionCount: 4,
+      failedActions: [
+        {
+          action: "Deploy-RED",
+          additionalInformation: "Deployment d-XGTBRT9SF failed",
+        },
+        {
+          action: "Deploy-GREEN",
+          additionalInformation: "Deployment d-KH37TM9SF failed",
+        },
+        {
+          action: "Deploy-BLUE",
+          additionalInformation: "Deployment d-SUP6PC9SF failed",
+        },
+        {
+          action: "Deploy-ORANGE",
+          additionalInformation: "Deployment d-QJ1WPX8SF failed",
+        },
+      ],
+      failedStage: "DeployToExternalAccount",
     },
-    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
-    additionalAttributes: {},
   });
-  /* ===========================================================*/
-  /* 2022-04-02T02:58:59.275 */
-  event.push({
-    account: "000000000000",
-    detailType: "CodePipeline Action Execution State Change",
-    region: "ap-southeast-2",
-    source: "aws.codepipeline",
-    time: "2022-04-02T02:58:46Z",
-    notificationRuleArn:
-      "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
-    detail: {
-      pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
-      stage: "DeployToExternalAccount",
-      "execution-result": {
-        "external-execution-url":
-          "https://console.aws.amazon.com/codedeploy/home?region=ap-southeast-2#/deployments/d-KVNCGY3SF",
-        "external-execution-summary": "Deployment Succeeded",
-        "external-execution-id": "d-KVNCGY3SF",
-      },
-      action: "Deploy-RED",
-      state: "SUCCEEDED",
-      region: "ap-southeast-2",
-      type: {
-        owner: "AWS",
-        provider: "CodeDeploy",
-        category: "Deploy",
-        version: "1",
-      },
-      version: 16,
-    },
-    resources: ["arn:aws:codepipeline:ap-southeast-2:000000000000:meerkat"],
-    additionalAttributes: {},
-  });
+
   return event;
 };
