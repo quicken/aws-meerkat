@@ -43,7 +43,7 @@ echo
 case $option in
         1)
             echo "Starting the development stack"
-            docker-compose  -f ${MEERKAT_HOME}/_dev/docker/compose-dev.yml up
+            docker-compose  -f ${MEERKAT_HOME}/_dev/docker/compose-dev.yml up --remove-orphans
             ;;
         2)
             echo "Placholder for future use."
