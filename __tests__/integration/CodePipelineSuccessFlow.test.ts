@@ -33,22 +33,7 @@ import { Meerkat } from "../../src/Meerkat";
 import { AWS_LIST_TARGETS, AWS_BATCH_TARGETS } from "../sample/aws/codeDeploy";
 import { SAMPLE_BATCH_BUILDS } from "../sample/aws/codeBuild";
 
-/* #################################################### */
-/*
-Set to true to run these integration test. Typically only want to do this during development.
-
-Integration tests require that the local dynamo db docker container is up and running.
-
-Use the _dev/start.sh script to launchh the local instance.
-
-Also make sure the .env file has entry of:
-
-DB_TABLE=meerkat
-DYNAMO_ENDPOINT=http://localhost:8000
-*/
-/* #################################################### */
-const RUN_INTEGRATION_TESTS = false;
-
+const INTEGRATION_TESTS = process.env.INTEGRATION_TESTS || false;
 const DYNAMO_ENDPOINT = process.env.DYNAMO_ENDPOINT;
 const DYNAMO_DB = new DynamoDBClient({
   endpoint: DYNAMO_ENDPOINT,
@@ -80,7 +65,17 @@ jest.mock("../../src/lib/BitBucket", () => {
 
 const bitBucket = new BitBucket("", "");
 
+beforeAll(() => {
+  if (!INTEGRATION_TESTS) {
+    console.info(
+      "\x1b[33m%s\x1b[0m",
+      "INTEGRATION_TESTS are disabled. Skipping all integration tests."
+    );
+  }
+});
+
 beforeEach(async () => {
+  if (!INTEGRATION_TESTS) return;
   codeBuildMock.reset();
   codeDeployMock.reset();
   const deleteItemCommandInput: DeleteItemCommandInput = {
@@ -94,13 +89,7 @@ beforeEach(async () => {
 });
 
 test("integration_pipeline-success", async () => {
-  if (!RUN_INTEGRATION_TESTS) {
-    console.info(
-      "\x1b[33m%s\x1b[0m",
-      "INTEGRATION_TESTS are disabled. Skipping all integration tests."
-    );
-    return true;
-  }
+  if (!INTEGRATION_TESTS) return;
   codeBuildMock.on(BatchGetBuildsCommand).resolves(SAMPLE_BATCH_BUILDS);
   codeDeployMock.on(ListDeploymentTargetsCommand).resolves(AWS_LIST_TARGETS);
   codeDeployMock

@@ -33,22 +33,7 @@ import { Meerkat } from "../../src/Meerkat";
 import { AWS_LIST_TARGETS, AWS_BATCH_TARGETS } from "../sample/aws/codeDeploy";
 import { SAMPLE_BATCH_BUILDS } from "../sample/aws/codeBuild";
 
-/* #################################################### */
-/*
-Set to true to run these integration test. Typically only want to do this during development.
-
-Integration tests require that the local dynamo db docker container is up and running.
-
-Use the _dev/start.sh script to launchh the local instance.
-
-Also make sure the .env file has entry of:
-
-DB_TABLE=meerkat
-DYNAMO_ENDPOINT=http://localhost:8000
-*/
-/* #################################################### */
-const RUN_INTEGRATION_TESTS = false;
-
+const INTEGRATION_TESTS = process.env.INTEGRATION_TESTS || false;
 const DYNAMO_ENDPOINT = process.env.DYNAMO_ENDPOINT;
 const DYNAMO_DB = new DynamoDBClient({
   endpoint: DYNAMO_ENDPOINT,
@@ -80,13 +65,23 @@ jest.mock("../../src/lib/BitBucket", () => {
 
 const bitBucket = new BitBucket("", "");
 
+beforeAll(() => {
+  if (!INTEGRATION_TESTS) {
+    console.info(
+      "\x1b[33m%s\x1b[0m",
+      "INTEGRATION_TESTS are disabled. Skipping all integration tests."
+    );
+  }
+});
+
 beforeEach(async () => {
+  if (!INTEGRATION_TESTS) return;
   codeBuildMock.reset();
   codeDeployMock.reset();
   const deleteItemCommandInput: DeleteItemCommandInput = {
     TableName: DB_TABLE,
     Key: {
-      executionId: { S: "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969" },
+      executionId: { S: "8bdcdf4b-2dd1-cccc-8aeb-562ff8b55969" },
     },
   };
   const deleteItemCommand = new DeleteItemCommand(deleteItemCommandInput);
@@ -94,13 +89,7 @@ beforeEach(async () => {
 });
 
 test("integration_pipeline-fail-code-deploy", async () => {
-  if (!RUN_INTEGRATION_TESTS) {
-    console.info(
-      "\x1b[33m%s\x1b[0m",
-      "INTEGRATION_TESTS are disabled. Skipping all integration tests."
-    );
-    return;
-  }
+  if (!INTEGRATION_TESTS) return;
   codeBuildMock.on(BatchGetBuildsCommand).resolves(SAMPLE_BATCH_BUILDS);
   codeDeployMock.on(ListDeploymentTargetsCommand).resolves(AWS_LIST_TARGETS);
   codeDeployMock
@@ -162,7 +151,7 @@ const getCodePipelineFailedCodeDeployFlow = () => {
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
       pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      "execution-id": "8bdcdf4b-2dd1-cccc-8aeb-562ff8b55969",
       state: "STARTED",
       stage: "Source",
       version: 16,
@@ -184,7 +173,7 @@ const getCodePipelineFailedCodeDeployFlow = () => {
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
       pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      "execution-id": "8bdcdf4b-2dd1-cccc-8aeb-562ff8b55969",
       stage: "Build",
       action: "Build",
       "input-artifacts": [
@@ -221,7 +210,7 @@ const getCodePipelineFailedCodeDeployFlow = () => {
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
       pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      "execution-id": "8bdcdf4b-2dd1-cccc-8aeb-562ff8b55969",
       state: "STARTED",
       stage: "Build",
       version: 16,
@@ -243,7 +232,7 @@ const getCodePipelineFailedCodeDeployFlow = () => {
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
       pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      "execution-id": "8bdcdf4b-2dd1-cccc-8aeb-562ff8b55969",
       "execution-trigger": {
         "trigger-type": "Webhook",
         "trigger-detail":
@@ -267,7 +256,7 @@ const getCodePipelineFailedCodeDeployFlow = () => {
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
       pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      "execution-id": "8bdcdf4b-2dd1-cccc-8aeb-562ff8b55969",
       stage: "Source",
       action: "Source",
       state: "STARTED",
@@ -295,7 +284,7 @@ const getCodePipelineFailedCodeDeployFlow = () => {
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
       pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      "execution-id": "8bdcdf4b-2dd1-cccc-8aeb-562ff8b55969",
       state: "SUCCEEDED",
       stage: "Source",
       version: 16,
@@ -317,7 +306,7 @@ const getCodePipelineFailedCodeDeployFlow = () => {
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
       pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      "execution-id": "8bdcdf4b-2dd1-cccc-8aeb-562ff8b55969",
       stage: "Source",
       "execution-result": {
         "external-execution-url":
@@ -361,7 +350,7 @@ const getCodePipelineFailedCodeDeployFlow = () => {
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
       pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      "execution-id": "8bdcdf4b-2dd1-cccc-8aeb-562ff8b55969",
       state: "STARTED",
       stage: "DeployToExternalAccount",
       version: 16,
@@ -383,7 +372,7 @@ const getCodePipelineFailedCodeDeployFlow = () => {
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
       pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      "execution-id": "8bdcdf4b-2dd1-cccc-8aeb-562ff8b55969",
       state: "SUCCEEDED",
       stage: "Build",
       version: 16,
@@ -405,7 +394,7 @@ const getCodePipelineFailedCodeDeployFlow = () => {
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
       pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      "execution-id": "8bdcdf4b-2dd1-cccc-8aeb-562ff8b55969",
       stage: "DeployToExternalAccount",
       action: "Deploy-GREEN",
       "input-artifacts": [
@@ -442,7 +431,7 @@ const getCodePipelineFailedCodeDeployFlow = () => {
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
       pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      "execution-id": "8bdcdf4b-2dd1-cccc-8aeb-562ff8b55969",
       stage: "DeployToExternalAccount",
       action: "Deploy-ORANGE",
       "input-artifacts": [
@@ -479,7 +468,7 @@ const getCodePipelineFailedCodeDeployFlow = () => {
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
       pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      "execution-id": "8bdcdf4b-2dd1-cccc-8aeb-562ff8b55969",
       stage: "DeployToExternalAccount",
       action: "Deploy-RED",
       "input-artifacts": [
@@ -516,7 +505,7 @@ const getCodePipelineFailedCodeDeployFlow = () => {
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
       pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      "execution-id": "8bdcdf4b-2dd1-cccc-8aeb-562ff8b55969",
       stage: "Build",
       "execution-result": {
         "external-execution-url":
@@ -558,7 +547,7 @@ const getCodePipelineFailedCodeDeployFlow = () => {
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
       pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      "execution-id": "8bdcdf4b-2dd1-cccc-8aeb-562ff8b55969",
       stage: "DeployToExternalAccount",
       "execution-result": {
         "external-execution-url":
@@ -595,7 +584,7 @@ const getCodePipelineFailedCodeDeployFlow = () => {
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
       pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      "execution-id": "8bdcdf4b-2dd1-cccc-8aeb-562ff8b55969",
       stage: "DeployToExternalAccount",
       "execution-result": {
         "external-execution-url":
@@ -632,7 +621,7 @@ const getCodePipelineFailedCodeDeployFlow = () => {
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
       pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      "execution-id": "8bdcdf4b-2dd1-cccc-8aeb-562ff8b55969",
       stage: "DeployToExternalAccount",
       "execution-result": {
         "external-execution-url":
@@ -669,7 +658,7 @@ const getCodePipelineFailedCodeDeployFlow = () => {
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
       pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      "execution-id": "8bdcdf4b-2dd1-cccc-8aeb-562ff8b55969",
       stage: "DeployToExternalAccount",
       "execution-result": {
         "external-execution-url":
@@ -706,7 +695,7 @@ const getCodePipelineFailedCodeDeployFlow = () => {
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
       pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      "execution-id": "8bdcdf4b-2dd1-cccc-8aeb-562ff8b55969",
       stage: "DeployToExternalAccount",
       action: "Deploy-BLUE",
       "input-artifacts": [
@@ -743,7 +732,7 @@ const getCodePipelineFailedCodeDeployFlow = () => {
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
       pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      "execution-id": "8bdcdf4b-2dd1-cccc-8aeb-562ff8b55969",
       state: "FAILED",
       stage: "DeployToExternalAccount",
       version: 16,
@@ -783,7 +772,7 @@ const getCodePipelineFailedCodeDeployFlow = () => {
       "arn:aws:codestar-notifications:ap-southeast-2:000000000000:notificationrule/ab499f2b2838ba3d9c9b5d0646396f70333f0644",
     detail: {
       pipeline: "meerkat",
-      "execution-id": "8bdcdf4b-2dd1-4bbe-8aeb-562ff8b55969",
+      "execution-id": "8bdcdf4b-2dd1-cccc-8aeb-562ff8b55969",
       state: "FAILED",
       version: 16,
     },
