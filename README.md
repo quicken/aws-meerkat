@@ -12,7 +12,7 @@ Meerkat will run off and fetch helpful troubleshooting data before sending you a
 ## Features
 
 - All pipeline failures include the Commit Message, Author and a link to the commit.
-- Build failures include a link to viewing the code build, build log.
+- Build failures include a link to viewing the code build, and build log.
 - Deploy failures (EC2) show the script and reason for the deployment failure.
 - Deployment information is retrieved across AWS accounts.
 - Beautify cloud watch alarms and shows state changes.
@@ -25,25 +25,59 @@ Meerkat will run off and fetch helpful troubleshooting data before sending you a
 
 - Your GitHub Username and Personal AccessToken or Bitbucket Username & Password
 - Your repository id
-- Your repository URL (The http url you would use with git clone)
+- Your repository URL (The HTTP URL you would use with git clone)
 - Discord Webhook Url
-- A hosted .png file for the discord avatar. 128px X 128px
-- An AWS Account (obviously)
+- A hosted .png file for the Discord avatar. 128px X 128px
+- An AWS account (obviously)
 - An AWS S3 Bucket.
 
 ### Provisioning Meerkat
 
 - Upload the release zip file to your S3 Bucket and make a note of the bucket name and object key.
-- Create a cloudformation stack using the cloudformation template provided in this repository: /cloudformation meerkat.yaml
+- Create a cloud formation stack using the cloud formation template provided in this repository: /cloudformation meerkat.yaml
 
-The cloudformation will provision the resources and permission required by meerkat.
+The cloud formation will provision the resources and permission required by Meerkat.
 
-If you already have a SNS Topic that is receiving Code Pipeline Events or Cloud Watch alarms simply subribe meerkat to that topic. Otherwise, you can use the
+If you already have an SNS Topic that is receiving Code Pipeline Events or Cloud Watch alarms simply subscribe meerkat to that topic. Otherwise, you can use the
 provisioned SNS Topic as a target for notifications.
+
+## Code Pipeline Bot
+
+For the bot to receive success and failure notifications.
+
+### Code Pipeline Events;
+
+The bot requires notification of the following events so that the bot can collate the information required
+to send notifications that are useful for troubleshooting build and deployment failures.
+
+- Pipeline execution Failed
+- Pipeline execution Succeeded
+- Action execution Failed
+- Action execution Succeeded.
+
+#### Pipeline execution Failed
+
+Raises a notification if the Pipeline Execution Fails. However, this event does not contain sufficient detail to troubleshoot the pipeline failure.
+
+As such, notifications based on this event rely on the availability of information collected by processing any associated "Action Events.
+Action events should be enabled to enrich notifications with troubleshooting data.
+
+#### Pipeline execution Succeeded
+
+Raises a notification if the Pipeline Execution succeeds.
+
+#### Action execution Succeeded
+
+Allows collecting commit information from the Source Provider. (GitHub or Bitbucket)
+
+#### Action execution Failed
+
+Allows collecting detailed information causing the pipeline failure. Failed CodeDeploy actions show diagnostic information related to the first instance to which deployment failed.
+In the case of a CodeBuild failure, show a link to the build log.
 
 #### Sample Code Pipeline
 
-This repository also contains an example cloud formation template that will provision an end to end AWS Code pipeline that will send notification to discord using Meerkat.
+This repository also contains an example cloud formation template that will provision an AWS Code pipeline that will send a notification to Discord using Meerkat.
 
 ## Setup
 
@@ -70,17 +104,9 @@ The Lambda execution role requires the following permissions in addition to the 
 
 ## Environment Variables
 
-#### GIT_PASSWORD
+#### CHAT_SERVICE (optional)
 
-The password that is used to connect to the git provider. For GitHub this is a Personal Access Token with permission to read commits.
-
-#### GIT_PROVIDER (optional)
-
-The service hosting the repository. Valid values are "bitbucket" or "github". The default is: github
-
-#### GIT_USERNAME
-
-The username that is used to connect to the git provider.
+Set the chat service that is used to deliver notifications. The only current option is: "discord"
 
 #### DB_TABLE (optional)
 
@@ -110,46 +136,60 @@ For example, You have three AWS Accounts.
 - b) Testing - This is an AWS account to which testing builds are deployed.
 - c) Production - This is an AWS account to which production builds are deployed.
 
-You can have a single lambda function handle notifications for all environments use the pipeline name.
+You can have a single lambda function handle notifications for all environments using the pipeline name.
 
-Pipeline for testing could be called: "my-testing-pipeline", while the production pipeline could be named "the-real-deal:
+The pipeline for testing could be called: "my-testing-pipeline", while the production pipeline could be named "the-real-deal:
 
 To set the Arn for testing define and environment variables named "DEPLOY_ARN_testing". To set the Arn for production set another
 environment variable "DEPLOY_ARN_real-deal"
 
 If "DEPLOY_ARN" is defined it will be used as a fallback in the case that no DEPLOY_ARN\*\* variables can be matched to the pipeline name.
 
-Finally, if the environment variable is set to empty string or no DEPLOY_ARN variables are specified then the role assigned to the
+Finally, if the environment variable is set to an empty string or no DEPLOY_ARN variables are specified then the role assigned to the
 lambda function will be used to call the Code Deploy API.
 
 Constructive feedback, feature requests and discussions are welcomed.
 
-#### DISCORD_AVATAR
+#### Discord_AVATAR
 
-A public URL to an image that will be used as the discord avatar. The image is shown next to the message thread. The image must conform to the dimensions required by discord.
+A public URL to an image that will be used as the Discord avatar. The image is shown next to the message thread. The image must conform to the dimensions required by Discord.
 
 A 128px x 128px png file with alpha transparency is known to work.
 
-#### DISCORD_USERNAME (optional)
+#### Discord_USERNAME (optional)
 
-Override the username that is shown in discord.
+Override the displayed username when posting to Discord.
 
-#### DISCORD_WEBHOOK
+#### Discord_WEBHOOK
 
-The discord webhook to which notifications are posted.
+The Discord webhook to which notifications are posted.
 
-#### REGION
+#### GIT_PASSWORD
 
-The AWS region that will be used when calling AWS services.
+The password that is used to connect to the git provider. For GitHub, this is a Personal Access Token with permission to read commits.
+
+#### GIT_PROVIDER (optional)
+
+The service hosting the repository. Valid values are "bitbucket" or "github". The default is: github
+
+#### GIT_USERNAME
+
+The username that is used to connect to the git provider.
+
+#### SLACK_WEBHOOK
+
+The webhook to which notifications are being sent. Only required if slack is being used as the chat service.
 
 ## Development Environment
 
-Create a .env file in the project root and specify the environment variables below.
+Create a .env file in the project root and specify the environment variables.
 
 ### Building
 
 The build script expects to be run from a bash terminal. The zip package must also be installed.
-(sudo apt install zip). If on windows use the Linux subsystem for windows (WSL)
+(sudo apt install zip). If on windows use the Linux subsystem for Windows (WSL)
+
+### Environment variables for development
 
 #### AWS_PROFILE
 
@@ -159,11 +199,24 @@ this variable is not required as the SDK will use the role assigned to the Lambd
 For the details of setting up AWS profiles see:
 https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html
 
-### Environment variables for running Unit-Test
+#### DYNAMO_ENDPOINT
 
-#### TEST_CODE_BUILD_ID
+Set this to point to the Dynamo DB endpoint to which PipeLogs are saved. To work with the
+provided docker container on the local machine set this to: http://localhost:8000"
 
-For unit testing only. A code build deployment id from a failed build.
+#### INTEGRATION_TESTS
+
+Set this value to true to run integration tests as a part of the unit testing suite.
+Integration test require a connection to Dynamo DB. Run the local docker container or
+use a profile that can connect to AWS.
+
+```:bash
+$MEERKAT/_dev/start.sh
+```
+
+#### MEERKAT_HOME
+
+The environment variable should contain the absolute filesystem path to the "root" of this project.
 
 ## Known Issues
 
