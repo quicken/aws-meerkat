@@ -4,22 +4,22 @@ import { BitBucket } from "./lib/BitBucket";
 import { GitHub } from "./lib/GitHub";
 import { Meerkat } from "./Meerkat";
 
-const DYNAMO_ENDPOINT = process.env.DYNAMO_ENDPOINT;
 const GIT_PROVIDER = process.env.GIT_PROVIDER || "";
 const GIT_USERNAME = process.env.GIT_USERNAME || "";
 const GIT_PASSWORD = process.env.GIT_PASSWORD || "";
+const CHAT_SERVICE = process.env.CHAT_SERVICE || "discord";
+/* Debug settings. */
+const DYNAMO_ENDPOINT = process.env.DYNAMO_ENDPOINT;
 const TRACE_EVENTS = process.env.TRACE_EVENTS || false;
-
-const CODE_PROVIDER =
-  GIT_PROVIDER.toLowerCase() === "bitbucket"
-    ? new BitBucket(GIT_USERNAME, GIT_PASSWORD)
-    : new GitHub(GIT_USERNAME, GIT_PASSWORD);
 
 const DYNAMO_DB = new DynamoDBClient({
   endpoint: DYNAMO_ENDPOINT,
 });
 
-const CHAT_SERVICE = "discord";
+const CODE_PROVIDER =
+  GIT_PROVIDER.toLowerCase() === "bitbucket"
+    ? new BitBucket(GIT_USERNAME, GIT_PASSWORD)
+    : new GitHub(GIT_USERNAME, GIT_PASSWORD);
 
 const meerkat = new Meerkat(DYNAMO_DB, CODE_PROVIDER, CHAT_SERVICE);
 
