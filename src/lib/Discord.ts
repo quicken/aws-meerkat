@@ -32,10 +32,16 @@ export class Discord {
     const author = commit.author.length === 0 ? "" : commit.author;
 
     if (commit.id !== "") {
-      message.fields.push({
-        name: `Commit: ${commit.id}`,
-        value: `${commit.summary}`,
-      });
+      message.fields.push(
+        {
+          name: `Commit: ${commit.id}`,
+          value: `${commit.summary}`
+        },
+        {
+          name: `View Commit:`,
+          value: `${commit.link}`
+        }
+      );
     }
 
     const type = failureDetail ? failureDetail.type : "";
@@ -108,10 +114,16 @@ export class Discord {
     };
 
     if (commit.id !== "") {
-      message.fields.push({
-        name: `Commit: ${commit.id}`,
-        value: `${commit.summary}`,
-      });
+      message.fields.push(
+        {
+          name: `Commit: ${commit.id}`,
+          value: `${commit.summary}`
+        },
+        {
+          name: `View Commit:`,
+          value: `${commit.link}`
+        }
+      );
     }
 
     return message;

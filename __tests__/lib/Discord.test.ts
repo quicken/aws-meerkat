@@ -56,7 +56,8 @@ test("create-build-failed-message", async () => {
 
   // discord.postMessage(message,DISCORD_WEBHOOK,DISCORD_AVATAR,DISCORD_USERNAME);
   expect(message.fields[0].name).toBe("Commit: 123456");
-  expect(message.fields[1].name).toBe("View Build Log:");
+  expect(message.fields[1].name).toBe("View Commit:");
+  expect(message.fields[2].name).toBe("View Build Log:");
 });
 
 test("create-deploy-failed-message", async () => {
@@ -95,7 +96,7 @@ test("create-deploy-failed-message", async () => {
   );
 
   // discord.postMessage(message,DISCORD_WEBHOOK,DISCORD_AVATAR,DISCORD_USERNAME);
-  expect(message.fields.length).toBe(3);
+  expect(message.fields.length).toBe(4);
 });
 
 test("send-alarm", async () => {

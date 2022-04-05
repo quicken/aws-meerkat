@@ -49,7 +49,7 @@ export class BitBucket {
       id: commitId,
       author: response.body.author.raw,
       summary: response.body.summary.raw,
-      link: response.body.links.self.href,
+      link: response.body.links.html.href,
     };
   };
 }
