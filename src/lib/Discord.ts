@@ -129,6 +129,19 @@ export class Discord {
     return message;
   }
 
+  public createManualApprovalMessage(
+    pipeLineName: string
+  ): DiscordMessageType {
+
+    const message: DiscordMessageType = {
+      title: `:smirk: ${pipeLineName} requires manual approval.`,
+      description: "",
+      fields: [],
+      footer: "",
+    };
+    return message;
+  }
+
   public simpleMessage(subject: string, message: string): DiscordMessageType {
     return {
       title: `:skull_crossbones: ${subject}`,

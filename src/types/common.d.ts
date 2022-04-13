@@ -109,6 +109,15 @@ export type PipelineNotification = Notification & {
   failureDetail?: PipelineCodeBuildFailure | PipelineCodeDeployFailure;
 };
 
+/**
+ * A notification that contains information related to a manual approval being required for pipeline execution to resume.
+ */
+ export type ManualApprovalNotification = Notification & {
+  type: "ManualApprovalNotification";
+  /**  The name of the pipeline that triggered the notification. */
+  name: string;
+ }
+
 /** Extra information for troubleshooting pipeline failures caused by AWS Code Build. */
 export type PipelineCodeBuildFailure = {
   type: "CodeBuild";

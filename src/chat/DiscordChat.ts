@@ -2,6 +2,7 @@ import {
   Notification,
   AlarmNotification,
   PipelineNotification,
+  ManualApprovalNotification,
   SimpleNotification,
 } from "../types/common";
 import { Discord, DiscordMessageType } from "../lib/Discord";
@@ -59,6 +60,15 @@ export class DiscordChat extends Chat {
           );
         }
 
+        break;
+      }
+      
+      case "ManualApprovalNotification": {
+        const manualApprovalNotification = notification as ManualApprovalNotification;
+          color = GREEN;
+          discordMessage = this.discord.createManualApprovalMessage(
+            manualApprovalNotification.name
+        );
         break;
       }
       default:
