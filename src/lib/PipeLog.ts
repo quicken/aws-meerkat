@@ -1,7 +1,7 @@
 import { URL } from "url";
 import { BitBucket } from "./BitBucket";
 import { GitHub } from "./GitHub";
-import { Commit, LogEntry } from "../types/common";
+import { ManualApprovalAttributes, Commit, LogEntry } from "../types/common";
 import { CodePipelineActionEvent } from "../types/AwsCodePipeline";
 
 import {
@@ -44,6 +44,12 @@ export class PipeLog {
    * link: A link to the website showing details for this commit.
    */
   commit: Commit;
+
+  /** Manual approval information associated with the request.
+   * link: A URL added for additional review before approval.
+   * comment: Comments to be shared with the reviewer.
+  */
+  approvalAttributes: ManualApprovalAttributes
 
   /* The name of the DB table that stores pipelog data.*/
   private _dbTable: string;
@@ -92,6 +98,11 @@ export class PipeLog {
       author: "",
       summary: "",
       link: "",
+    };
+
+    this.approvalAttributes = {
+      link: "",
+      comment: ""
     };
 
     this._failed = [];
@@ -176,10 +187,34 @@ export class PipeLog {
       case "CodeBuild":
         return this.handleCodeBuildActionEvent(event);
 
+      case "Manual":
+        return this.handleManualApprovalEvent(event);
+
       case "CodeDeploy":
       default:
         return this.handleCodeDeployActionEvent(event);
     }
+  };
+
+  /**
+   * Process incoming manual approval requests.
+   * Adds any links and/or comments related to the request to the incoming pipeline message.
+   * @param message
+   * @returns
+   */
+   private handleManualApprovalEvent = async (
+    event: CodePipelineActionEvent
+  ) => {
+      const request = {
+      link: event.additionalAttributes.externalEntityLink
+        ? event.additionalAttributes.externalEntityLink
+        : "",
+      comment: event.additionalAttributes.customData
+        ? event.additionalAttributes.customData
+        : ""
+    };
+
+    this.approvalAttributes = request;
   };
 
   /**

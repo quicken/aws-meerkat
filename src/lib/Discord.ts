@@ -4,6 +4,7 @@ import {
   AlarmNotification,
   PipelineCodeBuildFailure,
   PipelineCodeDeployFailure,
+  ManualApprovalAttributes,
 } from "../types/common";
 
 export interface DiscordMessageType {
@@ -130,15 +131,34 @@ export class Discord {
   }
 
   public createManualApprovalMessage(
-    pipeLineName: string
+    pipeLineName: string,
+    manualAttributes: ManualApprovalAttributes
   ): DiscordMessageType {
 
     const message: DiscordMessageType = {
-      title: `:smirk: ${pipeLineName} requires manual approval.`,
+      title: `:sneeze: ${pipeLineName} requires manual approval.`,
       description: "",
       fields: [],
       footer: "",
     };
+
+    if (manualAttributes.link !== "") {
+      message.fields.push(
+        {
+          name: `Review Link:`,
+          value: `${manualAttributes.link}`
+        }
+      );
+    }
+    if (manualAttributes.comment !== "") {
+      message.fields.push(
+        {
+          name: `Comments:`,
+          value: `${manualAttributes.comment}`
+        }
+      );
+    }
+
     return message;
   }
 

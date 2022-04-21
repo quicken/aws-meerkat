@@ -143,7 +143,9 @@ export class CodePipelineBot extends Bot {
     ) {
       return this.createFailureNotification(this.pipeLog);
     }
-    if (event.detail.type.provider === "Manual") {
+    if (
+      event.detail.type.provider === "Manual" &&
+      event.detail.state === "STARTED") {
       return this.createManualApprovalNotification(this.pipeLog);
     }
     return null;
@@ -153,7 +155,8 @@ export class CodePipelineBot extends Bot {
     pipelog: PipeLog
   ): Promise<ManualApprovalNotification> => ({
     type: "ManualApprovalNotification",
-    name: pipelog.name
+    name: pipelog.name,
+    approvalAttributes: pipelog.approvalAttributes
   });
 
   createSuccessNotification = async (

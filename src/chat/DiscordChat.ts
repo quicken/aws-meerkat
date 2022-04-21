@@ -67,7 +67,8 @@ export class DiscordChat extends Chat {
         const manualApprovalNotification = notification as ManualApprovalNotification;
           color = GREEN;
           discordMessage = this.discord.createManualApprovalMessage(
-            manualApprovalNotification.name
+            manualApprovalNotification.name,
+            manualApprovalNotification.approvalAttributes
         );
         break;
       }
