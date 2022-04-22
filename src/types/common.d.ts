@@ -12,6 +12,15 @@ export interface Commit {
   link: string;
 }
 
+  /** Optional information related to a manual approval request.
+   */
+export interface ManualApprovalAttributes {
+   /** A URL added for additional review before approval. */
+  link?: string;
+  /** Any comments related to the approval request. */
+  comment?: string;
+}
+
 /**
  * A log entry is an abstracted form of an AWS Code pipeline event. AWS Code Pipeline events contain a lot of meta data.
  * Furthermore, a each different event type has a slightly different format.
@@ -108,6 +117,17 @@ export type PipelineNotification = Notification & {
   /** Contains information related to the cause of the pipeline failure */
   failureDetail?: PipelineCodeBuildFailure | PipelineCodeDeployFailure;
 };
+
+/**
+ * A notification that contains information related to a manual approval being required for pipeline execution to resume.
+ */
+ export type ManualApprovalNotification = Notification & {
+  type: "ManualApprovalNotification";
+  /**  The name of the pipeline that triggered the notification. */
+  name: string;
+  /**  Optional information to be reviewed by approvers. */
+  approvalAttributes: ManualApprovalAttributes;
+ }
 
 /** Extra information for troubleshooting pipeline failures caused by AWS Code Build. */
 export type PipelineCodeBuildFailure = {

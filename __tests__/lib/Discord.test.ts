@@ -5,6 +5,7 @@ import {
   AlarmNotification,
   PipelineCodeBuildFailure,
   PipelineCodeDeployFailure,
+  ManualApprovalAttributes,
 } from "../../src/types/common";
 
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || "";
@@ -58,6 +59,23 @@ test("create-build-failed-message", async () => {
   expect(message.fields[0].name).toBe("Commit: 123456");
   expect(message.fields[1].name).toBe("View Commit:");
   expect(message.fields[2].name).toBe("View Build Log:");
+});
+
+test("create-manual-approval-required-message", async () => {
+  const approvalAttributes: ManualApprovalAttributes = {
+    link: "http://www.github.com",
+    comment: "Retighten the spiggot on the warp-drive"
+  };
+
+  const discord = new Discord();
+  const message = discord.createManualApprovalMessage(
+    "Unit-Test",
+    approvalAttributes
+  );
+
+  expect(message.fields[0].name).toBe("Review Link:");
+  expect(message.fields[1].name).toBe("Comments:");
+  expect(message.fields.length).toBe(2);
 });
 
 test("create-deploy-failed-message", async () => {

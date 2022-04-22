@@ -109,5 +109,7 @@ export type CodePipelineActionEvent = CodePipelineEvent & {
   additionalAttributes: {
     sourceActions?: any[];
     additionalInformation?: string;
+    externalEntityLink?: string;
+    customData?: string;
   };
 };

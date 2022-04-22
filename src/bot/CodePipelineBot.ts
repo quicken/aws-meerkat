@@ -5,6 +5,7 @@ import {
   PipelineCodeBuildFailure,
   PipelineCodeDeployFailure,
   RawMessage,
+  ManualApprovalNotification,
 } from "../types/common";
 import {
   CodePipelineEvent,
@@ -63,7 +64,7 @@ export class CodePipelineBot extends Bot {
 
   handleMessage = async (
     rawMessage: RawMessage
-  ): Promise<PipelineNotification | null> => {
+  ): Promise<PipelineNotification | ManualApprovalNotification | null> => {
     const codePipelineEvent = rawMessage.body as CodePipelineEvent;
     const eventType = CodePipelineBot.detectEventType(codePipelineEvent);
 
@@ -142,8 +143,21 @@ export class CodePipelineBot extends Bot {
     ) {
       return this.createFailureNotification(this.pipeLog);
     }
+    if (
+      event.detail.type.provider === "Manual" &&
+      event.detail.state === "STARTED") {
+      return this.createManualApprovalNotification(this.pipeLog);
+    }
     return null;
   };
+
+  createManualApprovalNotification = async (
+    pipelog: PipeLog
+  ): Promise<ManualApprovalNotification> => ({
+    type: "ManualApprovalNotification",
+    name: pipelog.name,
+    approvalAttributes: pipelog.approvalAttributes
+  });
 
   createSuccessNotification = async (
     pipelog: PipeLog
