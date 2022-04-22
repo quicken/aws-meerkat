@@ -18,6 +18,7 @@ export class DiscordChat extends Chat {
   /** Formats and then sends a notification to Discord. */
   sendNotification = async (notification: Notification) => {
     const GREEN = 3066993;
+    const YELLOW = 16705372;
     const DARK_RED = 10038562;
 
     let color;
@@ -65,7 +66,7 @@ export class DiscordChat extends Chat {
       
       case "ManualApprovalNotification": {
         const manualApprovalNotification = notification as ManualApprovalNotification;
-          color = GREEN;
+          color = YELLOW;
           discordMessage = this.discord.createManualApprovalMessage(
             manualApprovalNotification.name,
             manualApprovalNotification.approvalAttributes
