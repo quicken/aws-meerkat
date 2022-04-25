@@ -13,20 +13,23 @@ const DYNAMO_ENDPOINT = process.env.DYNAMO_ENDPOINT;
 const TRACE_EVENTS = process.env.TRACE_EVENTS || true;
 
 const DYNAMO_DB = new DynamoDBClient({
-	endpoint: DYNAMO_ENDPOINT
+  endpoint: DYNAMO_ENDPOINT,
 });
 
 const CODE_PROVIDER =
-	GIT_PROVIDER.toLowerCase() === "bitbucket"
-		? new BitBucket(GIT_USERNAME, GIT_PASSWORD)
-		: new GitHub(GIT_USERNAME, GIT_PASSWORD);
+  GIT_PROVIDER.toLowerCase() === "bitbucket"
+    ? new BitBucket(GIT_USERNAME, GIT_PASSWORD)
+    : new GitHub(GIT_USERNAME, GIT_PASSWORD);
 
 const meerkat = new Meerkat(DYNAMO_DB, CODE_PROVIDER, CHAT_SERVICE);
 
-export const handler: SNSHandler = async (event: SNSEvent, context?: Context) => {
-	console.log("v1.5.2");
-	if (TRACE_EVENTS) {
-		console.log(event.Records[0].Sns.Message);
-	}
-	await meerkat.main(event);
+export const handler: SNSHandler = async (
+  event: SNSEvent,
+  context?: Context
+) => {
+  console.log("v1.5.3");
+  if (TRACE_EVENTS) {
+    console.log(event.Records[0].Sns.Message);
+  }
+  await meerkat.main(event);
 };
