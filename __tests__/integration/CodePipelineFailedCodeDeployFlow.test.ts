@@ -33,7 +33,7 @@ import { Meerkat } from "../../src/Meerkat";
 import { AWS_LIST_TARGETS, AWS_BATCH_TARGETS } from "../sample/aws/codeDeploy";
 import { SAMPLE_BATCH_BUILDS } from "../sample/aws/codeBuild";
 
-const INTEGRATION_TESTS = process.env.INTEGRATION_TESTS || false;
+const INTEGRATION_TESTS = process.env.INTEGRATION_TESTS === "true";
 const DYNAMO_ENDPOINT = process.env.DYNAMO_ENDPOINT;
 const DYNAMO_DB = new DynamoDBClient({
   endpoint: DYNAMO_ENDPOINT,
