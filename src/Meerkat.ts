@@ -82,11 +82,11 @@ export class Meerkat {
 
     try {
       rawMessage.isJson = true;
-      rawMessage.subject = event.Records[0].Sns.Subject;
+      rawMessage.subject = event.Records[0].Sns.Subject ?? "";
       rawMessage.body = JSON.parse(event.Records[0].Sns.Message);
     } catch (err: any) {
       rawMessage.isJson = false;
-      rawMessage.subject = event.Records[0].Sns.Subject;
+      rawMessage.subject = event.Records[0].Sns.Subject ?? "";
       rawMessage.body = event.Records[0].Sns.Message;
     }
 
