@@ -9,11 +9,11 @@ export const simpleMessageHandler: SNSHandler = async (
   event: SNSEvent,
   context?: Context
 ) => {
-  let snsSubject;
-  let snsMessage;
+  let snsSubject: string;
+  let snsMessage: string;
   try {
-    snsSubject = event.Records[0].Sns.Subject;
-    snsMessage = event.Records[0].Sns.Message;
+    snsSubject = event.Records[0].Sns.Subject ?? "";
+    snsMessage = event.Records[0].Sns.Message ?? "";
   } catch (err: any) {
     console.log(err.stack);
     return;
