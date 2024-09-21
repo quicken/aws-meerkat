@@ -36,11 +36,11 @@ export class Discord {
       message.fields.push(
         {
           name: `Commit: ${commit.id}`,
-          value: `${commit.summary}`
+          value: `${commit.summary}`,
         },
         {
           name: `View Commit:`,
-          value: `${commit.link}`
+          value: `${commit.link}`,
         }
       );
     }
@@ -118,11 +118,11 @@ export class Discord {
       message.fields.push(
         {
           name: `Commit: ${commit.id}`,
-          value: `${commit.summary}`
+          value: `${commit.summary}`,
         },
         {
           name: `View Commit:`,
-          value: `${commit.link}`
+          value: `${commit.link}`,
         }
       );
     }
@@ -134,7 +134,6 @@ export class Discord {
     pipeLineName: string,
     manualAttributes: ManualApprovalAttributes
   ): DiscordMessageType {
-
     const message: DiscordMessageType = {
       title: `:sneeze: ${pipeLineName} requires manual approval.`,
       description: "",
@@ -143,20 +142,16 @@ export class Discord {
     };
 
     if (manualAttributes.link !== "") {
-      message.fields.push(
-        {
-          name: `Review Link:`,
-          value: `${manualAttributes.link}`
-        }
-      );
+      message.fields.push({
+        name: `Review Link:`,
+        value: `${manualAttributes.link}`,
+      });
     }
     if (manualAttributes.comment !== "") {
-      message.fields.push(
-        {
-          name: `Comments:`,
-          value: `${manualAttributes.comment}`
-        }
-      );
+      message.fields.push({
+        name: `Comments:`,
+        value: `${manualAttributes.comment}`,
+      });
     }
 
     return message;

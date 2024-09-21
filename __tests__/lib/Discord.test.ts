@@ -64,7 +64,7 @@ test("create-build-failed-message", async () => {
 test("create-manual-approval-required-message", async () => {
   const approvalAttributes: ManualApprovalAttributes = {
     link: "http://www.github.com",
-    comment: "Retighten the spiggot on the warp-drive"
+    comment: "Retighten the spiggot on the warp-drive",
   };
 
   const discord = new Discord();

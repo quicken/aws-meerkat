@@ -2,6 +2,7 @@ import {
   Notification,
   AlarmNotification,
   PipelineNotification,
+  ManualApprovalNotification,
   SimpleNotification,
 } from "../types/common";
 import { Slack, SlackMessageType } from "../lib/Slack";
@@ -37,9 +38,26 @@ export class SlackChat extends Chat {
 
       case "PipelineNotification": {
         const pipelineNotification = notification as PipelineNotification;
-        slackMessage = this.slack.simpleMessage(
-          `Code Pipeline:${pipelineNotification.name}`,
-          `Pipline Success is:${pipelineNotification.successfull}`
+        if (pipelineNotification.successfull) {
+          slackMessage = this.slack.createPipeSuccessMessage(
+            `Code Pipeline:${pipelineNotification.name}`,
+            pipelineNotification.commit
+          );
+        } else {
+          slackMessage = this.slack.createPipeFailureMessage(
+            `Code Pipeline:${pipelineNotification.name}`,
+            pipelineNotification.commit,
+            pipelineNotification.failureDetail
+          );
+        }
+        break;
+      }
+
+      case "ManualApprovalNotification": {
+        const manualApprovalNotification =
+          notification as ManualApprovalNotification;
+        slackMessage = this.slack.createManualApprovalMessage(
+          `Code Pipeline:${manualApprovalNotification.name}`
         );
         break;
       }
