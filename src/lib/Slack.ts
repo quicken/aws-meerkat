@@ -175,28 +175,34 @@ export class Slack {
     return message;
   }
 
-  public createManualApprovalMessage(pipeLineName: string): SlackMessageType {
-    return {
+  public createManualApprovalMessage(
+    pipeLineName: string,
+    manualAttributes: ManualApprovalAttributes
+  ): SlackMessageType {
+    const message: SlackMessageType = {
       text: `:bulb: Received a AWS Notification`,
       blocks: [
         {
           type: "header",
           text: {
             type: "plain_text",
-            text: pipeLineName,
+            text: `:warning: :building_construction: ${pipeLineName} requires manual approval.`,
+            emoji: true,
           },
-        },
-        {
-          type: "section",
-          fields: [
-            {
-              type: "mrkdwn",
-              text: `${pipeLineName}\n`,
-            },
-          ],
         },
       ],
     };
+
+    const approvalSection: SlackBlockType = {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `${manualAttributes.comment}\n<${manualAttributes.link}|View Approval>`,
+      },
+    };
+    message.blocks.push(approvalSection);
+    message.blocks.push(this.divider);
+    return message;
   }
 
   public simpleMessage(subject: string, message: string): SlackMessageType {

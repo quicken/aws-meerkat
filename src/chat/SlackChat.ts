@@ -57,7 +57,8 @@ export class SlackChat extends Chat {
         const manualApprovalNotification =
           notification as ManualApprovalNotification;
         slackMessage = this.slack.createManualApprovalMessage(
-          `Code Pipeline:${manualApprovalNotification.name}`
+          manualApprovalNotification.name,
+          manualApprovalNotification.approvalAttributes
         );
         break;
       }

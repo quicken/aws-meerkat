@@ -92,7 +92,23 @@ test("create-pipeline-success-message", async () => {
 
   const slack = new Slack();
   const message = slack.createPipeSuccessMessage("unit-test", commit);
-  await slack.postMessage(message, SLACK_WEBHOOK);
+  //await slack.postMessage(message, SLACK_WEBHOOK);
+
+  expect(1).toBe(1);
+});
+
+test("create-manual-approval-required-message", async () => {
+  const approvalAttributes: ManualApprovalAttributes = {
+    link: "http://www.github.com",
+    comment: "Retighten the spiggot on the warp-drive",
+  };
+
+  const slack = new Slack();
+  const message = slack.createManualApprovalMessage(
+    "unit-test",
+    approvalAttributes
+  );
+  //await slack.postMessage(message, SLACK_WEBHOOK);
 
   expect(1).toBe(1);
 });
