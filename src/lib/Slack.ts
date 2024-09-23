@@ -50,7 +50,7 @@ export class Slack {
           type: "header",
           text: {
             type: "plain_text",
-            text: `:japanese_goblin: ${pipeLineName} is broken. :x:`,
+            text: `:x: :japanese_goblin: ${pipeLineName} is broken.`,
             emoji: true,
           },
         },
@@ -80,7 +80,7 @@ export class Slack {
                   text: "View build log",
                   emoji: true,
                 },
-                url: "https://google.com",
+                url: `${commit.link}`,
               },
             ],
           };
