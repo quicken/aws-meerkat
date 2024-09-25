@@ -70,6 +70,7 @@ export class Slack {
     switch (type) {
       case "CodeBuild":
         {
+          const codeBuildFailure = failureDetail as PipelineCodeBuildFailure;
           const buildSection: SlackBlockType = {
             type: "actions",
             elements: [
@@ -80,7 +81,7 @@ export class Slack {
                   text: "View build log",
                   emoji: true,
                 },
-                url: `${commit.link}`,
+                url: `${codeBuildFailure.logUrl}`,
               },
             ],
           };
