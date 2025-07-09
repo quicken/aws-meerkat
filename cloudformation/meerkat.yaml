@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: "Provisions the stack required by Meerkat the devops bot. Meerkat can be subscribed to SNS Topics and is especially usefull when listening for code pipeline life cycle events and cloudwatch alarms."
 
-# devops-pipeline-monitor v1.5.4
+# devops-pipeline-monitor v1.8.0
 Parameters:
   NameSpace:
     Type: String
@@ -20,7 +20,7 @@ Parameters:
   CodeKey:
     Type: String
     Description: The S3 key to the zip file that contains the lambda source code. (no leading slash)
-    Default: code-pipeline-monitor.v1.5.4.zip
+    Default: code-pipeline-monitor.v1.8.0.zip
 
   EnvGitProvider:
     Type: String
