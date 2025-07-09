@@ -1,6 +1,6 @@
 {
   "name": "aws-code-pipeline-monitor",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "main": "index.js",
   "engines": {
     "node": ">=20.0.0"
@@ -14,7 +14,9 @@
     "build": "./build.sh",
     "bundle": "./package.sh",
     "docs": "typedoc",
-    "start": "node esbuild.config.js && node -r dotenv/config ./build/index.js",
+    "start": "node esbuild.watch.js && node --inspect -r dotenv/config ./build/index.js",
+    "start:debug": "node esbuild.config.js && node --inspect-brk -r dotenv/config ./build/index.js",
+    "dev": "ts-node -r dotenv/config src/index.ts",
     "clean": "rm -rf build",
     "build:watch": "node esbuild.watch.js",
     "analyze": "node esbuild.config.js && npx esbuild-visualizer --metadata build/meta.json"
