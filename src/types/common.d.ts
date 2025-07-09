@@ -6,6 +6,8 @@ export interface Commit {
   id: string;
   /** The author of the commit. */
   author: string;
+  /** The author's email address. */
+  authorEmail?: string;
   /** The commit message. */
   summary: string;
   /** A link to the GIT provider website where this specific commit can be viewed. */

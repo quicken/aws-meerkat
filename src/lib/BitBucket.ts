@@ -45,9 +45,15 @@ export class BitBucket {
 
     const response = await Util.callEndpoint<any>(options, "");
 
+    const authorRaw = response.body.author.raw;
+    // Extract email from raw author string (format: "Name <email@domain.com>")
+    const emailMatch = authorRaw.match(/<([^>]+)>/);
+    const authorEmail = emailMatch ? emailMatch[1] : undefined;
+
     return {
       id: commitId,
-      author: response.body.author.raw,
+      author: authorRaw,
+      authorEmail: authorEmail,
       summary: response.body.summary.raw,
       link: response.body.links.html.href,
     };

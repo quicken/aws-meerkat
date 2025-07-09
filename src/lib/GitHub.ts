@@ -55,6 +55,7 @@ export class GitHub {
     return {
       id: commitId,
       author: `${response.body.author.name} <${response.body.author.email}>`,
+      authorEmail: response.body.author.email,
       summary: response.body.message,
       link: response.body.html_url,
     };
