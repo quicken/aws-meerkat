@@ -36,10 +36,8 @@ export class Slack {
   public createPipeFailureMessage(
     pipeLineName: string,
     commit: Commit,
-    failureDetail:
-      | PipelineCodeBuildFailure
-      | PipelineCodeDeployFailure
-      | undefined
+    failureDetail: PipelineCodeBuildFailure | PipelineCodeDeployFailure | undefined,
+    slackUserId: string | null
   ): SlackMessageType {
     const author = commit.author.length === 0 ? "" : commit.author;
 
@@ -143,10 +141,7 @@ export class Slack {
     return message;
   }
 
-  public createPipeSuccessMessage(
-    pipeLineName: string,
-    commit: Commit
-  ): SlackMessageType {
+  public createPipeSuccessMessage(pipeLineName: string, commit: Commit, slackUserId: string | null): SlackMessageType {
     const author = commit.author.length === 0 ? "" : commit.author;
 
     const message: SlackMessageType = {
@@ -167,7 +162,7 @@ export class Slack {
       type: "section",
       text: {
         type: "mrkdwn",
-        text: `>*${author}*\n>Commit: *<${commit.link}|${commit.id}>*\n>${commit.summary}`,
+        text: `>*${author}* ${this.mention(slackUserId)}\n>Commit: *<${commit.link}|${commit.id}>*\n>${commit.summary}`,
       },
     };
     message.blocks.push(commitSection);

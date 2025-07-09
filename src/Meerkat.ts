@@ -59,8 +59,13 @@ export class Meerkat {
    * @returns
    */
   main = async (snsEvent: SNSEvent) => {
-    const rawMessage = this.parseSnsEvent(snsEvent);
-    return await this.handleMessage(rawMessage);
+    try {
+      const rawMessage = this.parseSnsEvent(snsEvent);
+      return await this.handleMessage(rawMessage);
+    } catch (error) {
+      console.error("Meerkat main error:", error);
+      throw error;
+    }
   };
 
   /**
