@@ -104,13 +104,7 @@ export class Slack {
           if (codeDeployFailure.id !== "") {
             for (const info of codeDeployFailure.targets) {
               if (!info || !info.diagnostics) continue;
-              const logTail =
-                "```" +
-                info.diagnostics?.logTail.slice(
-                  info.diagnostics.logTail.length - 500,
-                  info.diagnostics.logTail.length
-                ) +
-                "```";
+              const logTail = "```" + info.diagnostics?.logTail.slice(info.diagnostics.logTail.length - 500, info.diagnostics.logTail.length) + "```";
 
               const targetInfo: SlackBlockType = {
                 type: "section",
@@ -171,10 +165,7 @@ export class Slack {
     return message;
   }
 
-  public createManualApprovalMessage(
-    pipeLineName: string,
-    manualAttributes: ManualApprovalAttributes
-  ): SlackMessageType {
+  public createManualApprovalMessage(pipeLineName: string, manualAttributes: ManualApprovalAttributes): SlackMessageType {
     const message: SlackMessageType = {
       text: `:bulb: Received a AWS Notification`,
       blocks: [
@@ -231,10 +222,7 @@ export class Slack {
    * @param path
    * @returns
    */
-  postMessage = async (
-    message: SlackMessageType,
-    path: string
-  ): Promise<any> => {
+  postMessage = async (message: SlackMessageType, path: string): Promise<any> => {
     const content = JSON.stringify(message);
 
     const options = {
