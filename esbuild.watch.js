@@ -7,7 +7,7 @@ const config = {
   target: 'node20',
   outfile: 'build/index.js',
   minify: false,
-  sourcemap: true,
+  sourcemap: 'inline',
   external: ['@aws-sdk/*', 'aws-lambda'],
   format: 'cjs',
   keepNames: true,
