@@ -13,36 +13,27 @@ const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK || "";
 export class SlackChat extends Chat {
   private slack = new Slack();
 
-  /** Formats and then sends a notification to Discord. */
+  /** Formats and then sends a notification to Slack. */
   sendNotification = async (notification: Notification) => {
     let slackMessage: SlackMessageType | null = null;
 
     switch (notification.type) {
       case "SimpleNotification": {
         const simpleNotification = notification as SimpleNotification;
-        slackMessage = this.slack.simpleMessage(
-          simpleNotification.subject,
-          simpleNotification.message
-        );
+        slackMessage = this.slack.simpleMessage(simpleNotification.subject, simpleNotification.message);
         break;
       }
 
       case "AlarmNotification": {
         const alarmNotification = notification as AlarmNotification;
-        slackMessage = this.slack.simpleMessage(
-          `Cloudwatch Alarm:${alarmNotification.alert.name}`,
-          alarmNotification.alert.reason
-        );
+        slackMessage = this.slack.simpleMessage(`Cloudwatch Alarm:${alarmNotification.alert.name}`, alarmNotification.alert.reason);
         break;
       }
 
       case "PipelineNotification": {
         const pipelineNotification = notification as PipelineNotification;
         if (pipelineNotification.successfull) {
-          slackMessage = this.slack.createPipeSuccessMessage(
-            `Code Pipeline:${pipelineNotification.name}`,
-            pipelineNotification.commit
-          );
+          slackMessage = this.slack.createPipeSuccessMessage(`Code Pipeline:${pipelineNotification.name}`, pipelineNotification.commit);
         } else {
           slackMessage = this.slack.createPipeFailureMessage(
             `Code Pipeline:${pipelineNotification.name}`,
@@ -54,12 +45,8 @@ export class SlackChat extends Chat {
       }
 
       case "ManualApprovalNotification": {
-        const manualApprovalNotification =
-          notification as ManualApprovalNotification;
-        slackMessage = this.slack.createManualApprovalMessage(
-          manualApprovalNotification.name,
-          manualApprovalNotification.approvalAttributes
-        );
+        const manualApprovalNotification = notification as ManualApprovalNotification;
+        slackMessage = this.slack.createManualApprovalMessage(manualApprovalNotification.name, manualApprovalNotification.approvalAttributes);
         break;
       }
       default:
