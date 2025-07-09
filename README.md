@@ -180,6 +180,19 @@ The username that is used to connect to the git provider.
 
 The webhook to which notifications are being sent. Only required if slack is being used as the chat service.
 
+#### SLACK_BOT_TOKEN (optional)
+
+The Slack Bot Token (starts with `xoxb-`) used for advanced Slack Web API features like user lookup and mentions. 
+When configured, the bot will attempt to mention users by looking up their Slack user ID based on their git commit email address.
+
+To obtain this token:
+1. Create a Slack App at https://api.slack.com/apps
+2. Add OAuth Scopes: `users:read` and `users:read.email`
+3. Install the app to your workspace
+4. Copy the Bot User OAuth Token
+
+If not provided, notifications will still work via webhook but without user mentions.
+
 ## Development Environment
 
 Create a .env file in the project root and specify the environment variables.

@@ -71,6 +71,7 @@ DISCORD_USERNAME=AWS Notification
 
 # Slack Settings (if using Slack)
 SLACK_WEBHOOK=your-slack-webhook
+SLACK_BOT_TOKEN=xoxb-your-bot-token  # Optional: for user mentions
 
 # Cross-account deployment (optional)
 DEPLOY_ARN=arn:aws:iam::account:role/role-name
