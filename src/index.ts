@@ -16,12 +16,14 @@ const DYNAMO_DB = new DynamoDBClient({
   endpoint: DYNAMO_ENDPOINT,
 });
 
-const CODE_PROVIDER =
-  GIT_PROVIDER.toLowerCase() === "bitbucket"
-    ? new BitBucket(GIT_USERNAME, GIT_PASSWORD)
-    : new GitHub(GIT_USERNAME, GIT_PASSWORD);
+const CODE_PROVIDER = GIT_PROVIDER.toLowerCase() === "bitbucket" ? new BitBucket(GIT_USERNAME, GIT_PASSWORD) : new GitHub(GIT_USERNAME, GIT_PASSWORD);
 
 const meerkat = new Meerkat(DYNAMO_DB, CODE_PROVIDER, CHAT_SERVICE);
+
+/* Harness */
+async function debug() {
+}
+//debug();
 
 export const handler: SNSHandler = async (
   event: SNSEvent,

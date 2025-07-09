@@ -28,5 +28,4 @@ export const simpleMessageHandler: SNSHandler = async (
     DISCORD_USERNAME
   );
 
-  console.log("Sent message to discord");
 };
