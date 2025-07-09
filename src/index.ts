@@ -3,6 +3,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { BitBucket } from "./lib/BitBucket";
 import { GitHub } from "./lib/GitHub";
 import { Meerkat } from "./Meerkat";
+import { version } from "../package.json";
 
 const GIT_PROVIDER = process.env.GIT_PROVIDER || "";
 const GIT_USERNAME = process.env.GIT_USERNAME || "";
@@ -21,15 +22,13 @@ const CODE_PROVIDER = GIT_PROVIDER.toLowerCase() === "bitbucket" ? new BitBucket
 const meerkat = new Meerkat(DYNAMO_DB, CODE_PROVIDER, CHAT_SERVICE);
 
 /* Harness */
-async function debug() {
-}
-//debug();
+// async function debug() {
+//   console.log(`v${version}`);
+// }
+// debug();
 
-export const handler: SNSHandler = async (
-  event: SNSEvent,
-  context?: Context
-) => {
-  console.log("v1.5.3");
+export const handler: SNSHandler = async (event: SNSEvent, context?: Context) => {
+  console.log(`v${version}`);
   if (TRACE_EVENTS) {
     console.log(event.Records[0].Sns.Message);
   }
