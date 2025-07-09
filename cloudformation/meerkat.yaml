@@ -38,13 +38,51 @@ Parameters:
     Type: String
     Description: "The password that is used to connect to the git provider. For GitHub this is a Personal Access Token with permission to read commits."
 
+  EnvChatService:
+    Type: String
+    AllowedValues:
+      - discord
+      - slack
+    Description: "The chat service used to deliver notifications."
+    Default: discord
+
   EnvDiscordAvatar:
     Type: String
     Description: "A public URL to an image that will be used as the discord avatar. (128px X 128px)"
+    Default: ""
+
+  EnvDiscordUsername:
+    Type: String
+    Description: "Override the displayed username when posting to Discord."
+    Default: ""
 
   EnvDiscordWebhook:
     Type: String
     Description: "The discord webhook to which notifications are posted."
+    Default: ""
+
+  EnvSlackWebhook:
+    Type: String
+    Description: "The Slack webhook to which notifications are posted. Only required if using Slack."
+    Default: ""
+
+  EnvSlackBotToken:
+    Type: String
+    Description: "The Slack Bot Token (xoxb-) for advanced features like user mentions. Optional."
+    Default: ""
+
+  EnvDeployArn:
+    Type: String
+    Description: "The role ARN assumed when retrieving CodeDeploy failure information across AWS accounts. Optional."
+    Default: ""
+
+  EnvTraceEvents:
+    Type: String
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Enable tracing of SNS events for debugging."
+    Default: "false"
 
   CostCenter:
     Type: String
@@ -194,13 +232,18 @@ Resources:
       Handler: "index.handler"
       Environment:
         Variables:
+          CHAT_SERVICE: !Ref EnvChatService
           GIT_PROVIDER: !Ref EnvGitProvider
           GIT_USERNAME: !Ref EnvGitUsername
           GIT_PASSWORD: !Ref EnvGitPassword
           DB_TABLE: !Ref DBTable
-          REGION: !Ref AWS::Region
           DISCORD_AVATAR: !Ref EnvDiscordAvatar
+          DISCORD_USERNAME: !Ref EnvDiscordUsername
           DISCORD_WEBHOOK: !Ref EnvDiscordWebhook
+          SLACK_WEBHOOK: !Ref EnvSlackWebhook
+          SLACK_BOT_TOKEN: !Ref EnvSlackBotToken
+          DEPLOY_ARN: !Ref EnvDeployArn
+          TRACE_EVENTS: !Ref EnvTraceEvents
       PackageType: Zip
       Role: !GetAtt LambdaServiceRole.Arn
       Runtime: nodejs20.x
