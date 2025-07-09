@@ -1,11 +1,4 @@
-import { Util } from "./Util";
-import {
-  Commit,
-  AlarmNotification,
-  PipelineCodeBuildFailure,
-  PipelineCodeDeployFailure,
-  ManualApprovalAttributes,
-} from "../types/common";
+import { Commit, AlarmNotification, PipelineCodeBuildFailure, PipelineCodeDeployFailure, ManualApprovalAttributes } from "../types/common";
 
 interface SlackBlockType {
   type: string;
@@ -59,7 +52,8 @@ export class Slack {
     failureDetail: PipelineCodeBuildFailure | PipelineCodeDeployFailure | undefined,
     slackUserId: string | null
   ): SlackMessageType {
-    const author = commit.author.length === 0 ? "" : commit.author;
+    let author = this.mention(slackUserId);
+    author = author.length === 0 ? commit.author : author;
 
     const message: SlackMessageType = {
       text: `:bulb: Received a AWS Notification`,
@@ -156,7 +150,8 @@ export class Slack {
   }
 
   public createPipeSuccessMessage(pipeLineName: string, commit: Commit, slackUserId: string | null): SlackMessageType {
-    const author = commit.author.length === 0 ? "" : commit.author;
+    let author = this.mention(slackUserId);
+    author = author.length === 0 ? commit.author : author;
 
     const message: SlackMessageType = {
       text: `:bulb: Received a AWS Notification`,
@@ -176,7 +171,7 @@ export class Slack {
       type: "section",
       text: {
         type: "mrkdwn",
-        text: `>*${author}* ${this.mention(slackUserId)}\n>Commit: *<${commit.link}|${commit.id}>*\n>${commit.summary}`,
+        text: `>*${author}*\n>Commit: *<${commit.link}|${commit.id}>*\n>${commit.summary}`,
       },
     };
     message.blocks.push(commitSection);
