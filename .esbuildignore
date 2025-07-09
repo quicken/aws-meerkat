@@ -1,0 +1,8 @@
+# Files to ignore during esbuild bundling
+__tests__/
+*.test.ts
+*.spec.ts
+coverage/
+docs/
+*.md
+.env*
