@@ -7,5 +7,5 @@ rm -rf ./build/*
 npx tsc -p tsconfig.json
 cp ./package.json ./build/
 cd ./build
-yarn install
+npm install
 echo Build Completed

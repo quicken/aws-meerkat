@@ -5,19 +5,19 @@ env:
 phases:
   install:
     runtime-versions:
-      nodejs: 12
+      nodejs: 20
     commands:
       - echo Installing
-      - yarn --cwd $CODEBUILD_SRC_DIR install
+      - npm --prefix "$CODEBUILD_SRC_DIR" install
 
   pre_build:
     commands:
-      - yarn --cwd $CODEBUILD_SRC_DIR clean
+      - npm --prefix "$CODEBUILD_SRC_DIR" run clean
 
   build:
     commands:
       - echo Build started at `date`
-      - yarn --cwd $CODEBUILD_SRC_DIR build
+      - npm --prefix "$CODEBUILD_SRC_DIR" run build
       - echo Build completed at `date`
 
 artifacts:
