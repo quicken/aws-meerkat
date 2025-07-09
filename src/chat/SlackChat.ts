@@ -102,13 +102,13 @@ export class SlackChat extends Chat {
   }
 
   /**
-   * Add user mention to message if user can be found
-   * @param message The original message
+   * Find the slack user id of a commit author.
+   *
    * @param authorEmail The author's email address
    * @param authorName The author's name (fallback if email lookup fails)
-   * @returns The message with user mention prepended if user found
+   * @returns The slack user id
    */
-  private async addUserMention(message: string, authorEmail?: string, authorName?: string): Promise<string> {
+  private async findSlackUserId(authorEmail?: string, authorName?: string) {
     let userId: string | null = null;
 
     // Try to find user by email first
@@ -124,17 +124,12 @@ export class SlackChat extends Chat {
       userId = await this.findUserByName(cleanName);
     }
 
-    // Add mention if user found
-    if (userId) {
-      return `<@${userId}> ${message}`;
-    }
-
-    return message;
+    return userId;
   }
 
   /** Formats and then sends a notification to Slack. */
   sendNotification = async (notification: Notification) => {
-    const slackWebhook = process.env.SLACK_WEBHOOK || "";
+    const slackChannel = process.env.SLACK_CHANNEL || "";
     let slackMessage: SlackMessageType | null = null;
 
     switch (notification.type) {
@@ -152,14 +147,19 @@ export class SlackChat extends Chat {
 
       case "PipelineNotification": {
         const pipelineNotification = notification as PipelineNotification;
-        const originalMessage = `Code Pipeline:${pipelineNotification.name}`;
-        const messageWithMention = await this.addUserMention(originalMessage, pipelineNotification.commit.authorEmail, pipelineNotification.commit.author);
+        const slackUserId = await this.findSlackUserId(pipelineNotification.commit.authorEmail, pipelineNotification.commit.author);
 
         if (pipelineNotification.successfull) {
-          slackMessage = this.slack.createPipeSuccessMessage(messageWithMention, pipelineNotification.commit);
+          slackMessage = this.slack.createPipeSuccessMessage(`Code Pipeline:${pipelineNotification.name}`, pipelineNotification.commit, slackUserId);
         } else {
-          slackMessage = this.slack.createPipeFailureMessage(messageWithMention, pipelineNotification.commit, pipelineNotification.failureDetail);
+          slackMessage = this.slack.createPipeFailureMessage(
+            `Code Pipeline:${pipelineNotification.name}`,
+            pipelineNotification.commit,
+            pipelineNotification.failureDetail,
+            slackUserId
+          );
         }
+
         break;
       }
 
@@ -172,7 +172,7 @@ export class SlackChat extends Chat {
     }
 
     if (slackMessage) {
-      await this.slack.postMessage(slackMessage, slackWebhook);
+      await this.slack.postMessageToChannel(slackMessage, slackChannel);
     }
   };
 }

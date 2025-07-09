@@ -238,4 +238,47 @@ export class Slack {
 
     return Util.callEndpoint(options, content);
   };
+
+  /**
+   * Post message to Slack channel using Bot API
+   * @param message The message to post, or null to skip
+   * @param channel The channel ID or name to post to
+   * @returns Promise resolving to API response
+   */
+  postMessageToChannel = async (message: SlackMessageType | null, channel: string): Promise<any> => {
+    if (!message) return null;
+
+    const slackBotToken = process.env.SLACK_BOT_TOKEN;
+    if (!slackBotToken) {
+      throw new Error("SLACK_BOT_TOKEN is required for posting to channels");
+    }
+
+    const response = await fetch("https://slack.com/api/chat.postMessage", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${slackBotToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        channel,
+        text: message.text,
+        blocks: message.blocks,
+      }),
+    });
+
+    await response.json();
+    if (!response.ok) {
+      throw new Error(`Slack API error: ${response.status} ${response.statusText}`);
+    }
+  };
+
+  /**
+   *
+   * @param slackUserId The slack user id to mention
+   * @returns
+   */
+  private mention(slackUserId: string | null): string {
+    if (!slackUserId) return "";
+    return `<@${slackUserId}>`;
+  }
 }
