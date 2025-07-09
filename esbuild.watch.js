@@ -4,7 +4,7 @@ const config = {
   entryPoints: ['src/index.ts'],
   bundle: true,
   platform: 'node',
-  target: 'node18',
+  target: 'node20',
   outfile: 'build/index.js',
   minify: false,
   sourcemap: true,

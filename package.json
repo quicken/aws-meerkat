@@ -2,6 +2,9 @@
   "name": "aws-code-pipeline-monitor",
   "version": "1.8.0",
   "main": "index.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "repository": "git@github.com:quicken/aws-code-pipeline-monitor.git",
   "author": "marcel <mscherzeru@gmail.com>",
   "license": "MIT",
