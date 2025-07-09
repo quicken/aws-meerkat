@@ -41,27 +41,22 @@ export class SlackChat extends Chat {
     const slackBotToken = process.env.SLACK_BOT_TOKEN || "";
 
     if (!slackBotToken) {
-      console.log("SLACK_BOT_TOKEN not configured, skipping user lookup");
       return null;
     }
 
     try {
-      const response = await fetch("https://slack.com/api/users.lookupByEmail", {
-        method: "POST",
+      const response = await fetch(`https://slack.com/api/users.lookupByEmail?email=${encodeURIComponent(email)}`, {
+        method: "GET",
         headers: {
           Authorization: `Bearer ${slackBotToken}`,
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email }),
       });
 
       const data = (await response.json()) as SlackUserLookupResponse;
 
       if (data.ok && data.user?.id) {
-        console.log(`Found Slack user ID ${data.user.id} for email ${email}`);
         return data.user.id;
       } else {
-        console.log(`No Slack user found for email ${email}: ${data.error || "Unknown error"}`);
         return null;
       }
     } catch (error) {
@@ -79,7 +74,6 @@ export class SlackChat extends Chat {
     const slackBotToken = process.env.SLACK_BOT_TOKEN || "";
 
     if (!slackBotToken) {
-      console.log("SLACK_BOT_TOKEN not configured, skipping user lookup");
       return null;
     }
 
@@ -96,12 +90,10 @@ export class SlackChat extends Chat {
         const user = data.members.find((member: SlackUser) => member.real_name === name || member.display_name === name || member.name === name);
 
         if (user?.id) {
-          console.log(`Found Slack user ID ${user.id} for name ${name}`);
           return user.id;
         }
       }
 
-      console.log(`No Slack user found for name ${name}`);
       return null;
     } catch (error) {
       console.error("Failed to lookup user by name:", error);
