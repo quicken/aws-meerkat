@@ -1,4 +1,3 @@
-version: "3.3"
 services:
   dynamodb:
     command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
