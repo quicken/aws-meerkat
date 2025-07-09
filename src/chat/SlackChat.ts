@@ -152,13 +152,12 @@ export class SlackChat extends Chat {
 
       case "PipelineNotification": {
         const pipelineNotification = notification as PipelineNotification;
-        if (pipelineNotification.successfull) {
-          slackMessage = this.slack.createPipeSuccessMessage(`Code Pipeline:${pipelineNotification.name}`, pipelineNotification.commit);
-        } else {
-          // For pipeline failures, try to mention the commit author
-          const originalMessage = `Code Pipeline:${pipelineNotification.name}`;
-          const messageWithMention = await this.addUserMention(originalMessage, pipelineNotification.commit.authorEmail, pipelineNotification.commit.author);
+        const originalMessage = `Code Pipeline:${pipelineNotification.name}`;
+        const messageWithMention = await this.addUserMention(originalMessage, pipelineNotification.commit.authorEmail, pipelineNotification.commit.author);
 
+        if (pipelineNotification.successfull) {
+          slackMessage = this.slack.createPipeSuccessMessage(messageWithMention, pipelineNotification.commit);
+        } else {
           slackMessage = this.slack.createPipeFailureMessage(messageWithMention, pipelineNotification.commit, pipelineNotification.failureDetail);
         }
         break;

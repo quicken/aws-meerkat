@@ -185,31 +185,5 @@ describe("SlackChat", () => {
       // Verify the failure message was created without mention
       expect(mockCreatePipeFailureMessage).toHaveBeenCalledWith("Code Pipeline:test-pipeline", expect.anything(), undefined);
     });
-
-    it("should not add mention for successful pipeline notifications", async () => {
-      const notification: PipelineNotification = {
-        type: "PipelineNotification",
-        name: "test-pipeline",
-        successfull: true,
-        commit: {
-          id: "abc123",
-          author: "John Doe <john.doe@example.com>",
-          authorEmail: "john.doe@example.com",
-          summary: "Fix bug",
-          link: "https://github.com/repo/commit/abc123",
-        },
-        failureDetail: undefined,
-      };
-
-      await slackChat.sendNotification(notification);
-
-      // Should not call user lookup for successful notifications
-      expect(mockFetch).not.toHaveBeenCalled();
-      // Should still post message
-      expect(mockPostMessage).toHaveBeenCalledTimes(1);
-
-      // Verify success message was created without mention
-      expect(mockCreatePipeSuccessMessage).toHaveBeenCalledWith("Code Pipeline:test-pipeline", expect.anything());
-    });
   });
 });
