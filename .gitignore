@@ -111,3 +111,4 @@ dist
 _nosql/data/*.db
 _dev/bruno/Slack/Foo.bru
 _dev/bruno/Slack/aXcelerate platform webhook.bru
+meerkat.code-workspace
