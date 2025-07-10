@@ -199,6 +199,14 @@ Resources:
             Effect: Allow
             Resource: !GetAtt DBTable.Arn
 
+          - Sid: SSMParameters
+            # Permission to read/write SSM parameters for Slack routing configuration
+            Action:
+              - ssm:GetParameter
+              - ssm:PutParameter
+            Effect: Allow
+            Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/meerkat/slack/routes"
+
           - Sid: CodeBuild
             # Permission to retrieve aditional information from builds.
             Effect: Allow
