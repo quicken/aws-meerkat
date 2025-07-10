@@ -1,5 +1,12 @@
 import { SlackChat } from "../../src/chat/SlackChat";
-import { PipelineNotification } from "../../src/types/common";
+import {
+  PipelineNotification,
+  SimpleNotification,
+  AlarmNotification,
+  ManualApprovalNotification,
+  PipelineCodeBuildFailure,
+  Commit
+} from "../../src/types/common";
 import { Slack } from "../../src/lib/Slack";
 
 // Mock fetch globally
@@ -17,6 +24,7 @@ describe("SlackChat", () => {
   const mockCreatePipeSuccessMessage = jest.fn();
   const mockCreateManualApprovalMessage = jest.fn();
   const mockSimpleMessage = jest.fn();
+  const mockFindSlackUserId = jest.fn();
   const originalEnv = process.env;
 
   beforeEach(() => {
@@ -26,6 +34,7 @@ describe("SlackChat", () => {
     mockCreatePipeSuccessMessage.mockClear();
     mockCreateManualApprovalMessage.mockClear();
     mockSimpleMessage.mockClear();
+    mockFindSlackUserId.mockClear();
 
     // Mock Slack instance methods
     mockSlack.mockImplementation(
@@ -35,7 +44,8 @@ describe("SlackChat", () => {
           createPipeSuccessMessage: mockCreatePipeSuccessMessage.mockReturnValue({ text: "test", blocks: [] }),
           createManualApprovalMessage: mockCreateManualApprovalMessage.mockReturnValue({ text: "test", blocks: [] }),
           simpleMessage: mockSimpleMessage.mockReturnValue({ text: "test", blocks: [] }),
-          postMessage: mockPostMessage.mockResolvedValue({}),
+          postMessageToChannel: mockPostMessage.mockResolvedValue({}),
+          findSlackUserId: mockFindSlackUserId.mockResolvedValue("U1234567890"),
           divider: { type: "divider" },
         } as any)
     );
@@ -45,6 +55,7 @@ describe("SlackChat", () => {
       ...originalEnv,
       SLACK_WEBHOOK: "https://hooks.slack.com/test",
       SLACK_BOT_TOKEN: "xoxb-test-token",
+      SLACK_CHANNEL: "test-channel"
     };
 
     // Create SlackChat instance after setting env vars
@@ -55,135 +66,148 @@ describe("SlackChat", () => {
     process.env = originalEnv;
   });
 
-  describe("User lookup functionality", () => {
-    it("should find user by email and add mention to pipeline failure message", async () => {
-      // Mock successful user lookup by email
-      mockFetch.mockResolvedValueOnce({
-        json: async () => ({
-          ok: true,
-          user: { id: "U1234567890", name: "john.doe" },
-        }),
-      } as Response);
-
-      const notification: PipelineNotification = {
-        type: "PipelineNotification",
-        name: "test-pipeline",
-        successfull: false,
-        commit: {
-          id: "abc123",
-          author: "John Doe <john.doe@example.com>",
-          authorEmail: "john.doe@example.com",
-          summary: "Fix bug",
-          link: "https://github.com/repo/commit/abc123",
-        },
-        failureDetail: undefined,
+  describe("Simple Notifications", () => {
+    it("should send a simple notification", async () => {
+      const notification: SimpleNotification = {
+        type: "SimpleNotification",
+        subject: "Test Subject",
+        message: "Test Message"
       };
 
       await slackChat.sendNotification(notification);
 
-      // Verify user lookup was called
-      expect(mockFetch).toHaveBeenCalledWith(
-        "https://slack.com/api/users.lookupByEmail?email=john.doe%40example.com",
-        expect.objectContaining({
-          method: "GET",
-          headers: expect.objectContaining({
-            Authorization: "Bearer xoxb-test-token",
-          }),
-        })
+      expect(mockSimpleMessage).toHaveBeenCalledWith("Test Subject", "Test Message");
+      expect(mockPostMessage).toHaveBeenCalledWith(
+        { text: "test", blocks: [] },
+        "test-channel"
       );
-
-      // Verify Slack message was posted
-      expect(mockPostMessage).toHaveBeenCalledTimes(1);
-
-      // Verify the failure message was created with the mention
-      expect(mockCreatePipeFailureMessage).toHaveBeenCalledWith("<@U1234567890> Code Pipeline:test-pipeline", expect.anything(), undefined);
     });
+  });
 
-    it("should fallback to name lookup when email lookup fails", async () => {
-      // Mock failed email lookup, successful name lookup
-      mockFetch
-        .mockResolvedValueOnce({
-          json: async () => ({
-            ok: false,
-            error: "users_not_found",
-          }),
-        } as Response)
-        .mockResolvedValueOnce({
-          json: async () => ({
-            ok: true,
-            members: [{ id: "U1234567890", name: "john.doe", real_name: "John Doe", display_name: "John" }],
-          }),
-        } as Response);
-
-      const notification: PipelineNotification = {
-        type: "PipelineNotification",
-        name: "test-pipeline",
-        successfull: false,
-        commit: {
-          id: "abc123",
-          author: "John Doe <john.doe@example.com>",
-          authorEmail: "john.doe@example.com",
-          summary: "Fix bug",
-          link: "https://github.com/repo/commit/abc123",
-        },
-        failureDetail: undefined,
+  describe("Alarm Notifications", () => {
+    it("should send an alarm notification", async () => {
+      const notification: AlarmNotification = {
+        type: "AlarmNotification",
+        alert: {
+          type: "alarm",
+          name: "TestAlarm",
+          description: "High CPU Usage Alert",
+          reason: "High CPU Usage",
+          date: Date.now()
+        }
       };
 
       await slackChat.sendNotification(notification);
 
-      // Verify both email and name lookup were called
-      expect(mockFetch).toHaveBeenCalledWith("https://slack.com/api/users.lookupByEmail?email=john.doe%40example.com", expect.anything());
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        "https://slack.com/api/users.list",
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: "Bearer xoxb-test-token",
-          }),
-        })
+      expect(mockSimpleMessage).toHaveBeenCalledWith("Cloudwatch Alarm:TestAlarm", "High CPU Usage");
+      expect(mockPostMessage).toHaveBeenCalledWith(
+        { text: "test", blocks: [] },
+        "test-channel"
       );
+    });
+  });
 
-      expect(mockFetch).toHaveBeenCalledTimes(2);
-      expect(mockPostMessage).toHaveBeenCalledTimes(1);
+  describe("Pipeline Notifications", () => {
+    const baseCommit: Commit = {
+      id: "123456",
+      author: "John Doe",
+      authorEmail: "john.doe@example.com",
+      summary: "Test commit",
+      link: "http://github.com/test"
+    };
 
-      // Verify the failure message was created with the mention from name lookup
-      expect(mockCreatePipeFailureMessage).toHaveBeenCalledWith("<@U1234567890> Code Pipeline:test-pipeline", expect.anything(), undefined);
+    it("should send a successful pipeline notification", async () => {
+      const notification: PipelineNotification = {
+        type: "PipelineNotification",
+        name: "TestPipeline",
+        successfull: true,
+        commit: baseCommit
+      };
+
+      await slackChat.sendNotification(notification);
+
+      expect(mockFindSlackUserId).toHaveBeenCalledWith("john.doe@example.com", "John Doe");
+      expect(mockCreatePipeSuccessMessage).toHaveBeenCalledWith(
+        "Code Pipeline:TestPipeline",
+        baseCommit,
+        "U1234567890"
+      );
+      expect(mockPostMessage).toHaveBeenCalledWith(
+        { text: "test", blocks: [] },
+        "test-channel"
+      );
     });
 
-    it("should work without SLACK_BOT_TOKEN configured", async () => {
-      // Reset environment without SLACK_BOT_TOKEN
-      process.env = {
-        ...originalEnv,
-        SLACK_WEBHOOK: "https://hooks.slack.com/test",
+    it("should send a failed pipeline notification", async () => {
+      const failureDetail: PipelineCodeBuildFailure = {
+        type: "CodeBuild",
+        logUrl: "http://example.com/logs"
       };
-      delete process.env.SLACK_BOT_TOKEN;
-
-      // Create new instance without bot token
-      const slackChatNoToken = new SlackChat();
 
       const notification: PipelineNotification = {
         type: "PipelineNotification",
-        name: "test-pipeline",
+        name: "TestPipeline",
         successfull: false,
-        commit: {
-          id: "abc123",
-          author: "John Doe <john.doe@example.com>",
-          authorEmail: "john.doe@example.com",
-          summary: "Fix bug",
-          link: "https://github.com/repo/commit/abc123",
-        },
-        failureDetail: undefined,
+        commit: baseCommit,
+        failureDetail
       };
 
-      await slackChatNoToken.sendNotification(notification);
+      await slackChat.sendNotification(notification);
 
-      // Should not call user lookup APIs
-      expect(mockFetch).not.toHaveBeenCalled();
-      // Should still post message
-      expect(mockPostMessage).toHaveBeenCalledTimes(1);
+      expect(mockFindSlackUserId).toHaveBeenCalledWith("john.doe@example.com", "John Doe");
+      expect(mockCreatePipeFailureMessage).toHaveBeenCalledWith(
+        "Code Pipeline:TestPipeline",
+        baseCommit,
+        failureDetail,
+        "U1234567890"
+      );
+      expect(mockPostMessage).toHaveBeenCalledWith(
+        { text: "test", blocks: [] },
+        "test-channel"
+      );
+    });
+  });
 
-      // Verify the failure message was created without mention
-      expect(mockCreatePipeFailureMessage).toHaveBeenCalledWith("Code Pipeline:test-pipeline", expect.anything(), undefined);
+  describe("Manual Approval Notifications", () => {
+    it("should send a manual approval notification", async () => {
+      const notification: ManualApprovalNotification = {
+        type: "ManualApprovalNotification",
+        name: "TestApproval",
+        approvalAttributes: {
+          link: "http://example.com/approve",
+          comment: "Please approve this deployment"
+        }
+      };
+
+      await slackChat.sendNotification(notification);
+
+      expect(mockCreateManualApprovalMessage).toHaveBeenCalledWith(
+        "TestApproval",
+        notification.approvalAttributes
+      );
+      expect(mockPostMessage).toHaveBeenCalledWith(
+        { text: "test", blocks: [] },
+        "test-channel"
+      );
+    });
+  });
+
+  describe("Environment Configuration", () => {
+    it("should use default empty string for SLACK_CHANNEL if not set", async () => {
+      delete process.env.SLACK_CHANNEL;
+
+      const notification: SimpleNotification = {
+        type: "SimpleNotification",
+        subject: "Test",
+        message: "Test"
+      };
+
+      await slackChat.sendNotification(notification);
+
+      expect(mockPostMessage).toHaveBeenCalledWith(
+        expect.anything(),
+        ""
+      );
     });
   });
 });
