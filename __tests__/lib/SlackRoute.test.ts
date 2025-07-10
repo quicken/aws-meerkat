@@ -21,13 +21,61 @@ describe("SlackRoute", () => {
   });
 
   describe("load", () => {
-    it("should load routes from SSM parameter store", async () => {
+    const originalEnv = process.env;
+
+    afterEach(() => {
+      process.env = originalEnv;
+    });
+
+    it("should load routes from local file when SLACK_ROUTES_CONFIG_FILE is set", async () => {
       const mockConfig = {
         slack: {
           routes: [{ expression: "type:PipelineNotification", channel: "#pipeline" }],
         },
       };
 
+      mockReadFile.mockResolvedValueOnce(JSON.stringify(mockConfig));
+      process.env.SLACK_ROUTES_CONFIG_FILE = "/path/to/local/config.json";
+
+      await slackRoute.load();
+
+      const channel = slackRoute.evaluateRoute({ type: "PipelineNotification" });
+      expect(channel).toBe("#pipeline");
+      expect(mockReadFile).toHaveBeenCalledWith("/path/to/local/config.json", "utf8");
+      expect(ssmMock.calls()).toHaveLength(0); // Should not call SSM
+    });
+
+    it("should fallback to SSM when local file fails and SLACK_ROUTES_CONFIG_FILE is set", async () => {
+      const mockConfig = {
+        slack: {
+          routes: [{ expression: "type:PipelineNotification", channel: "#pipeline-ssm" }],
+        },
+      };
+
+      mockReadFile.mockRejectedValueOnce(new Error("File not found"));
+      ssmMock.on(GetParameterCommand).resolves({
+        Parameter: {
+          Value: JSON.stringify(mockConfig),
+        },
+      });
+      process.env.SLACK_ROUTES_CONFIG_FILE = "/path/to/nonexistent/config.json";
+
+      await slackRoute.load();
+
+      const channel = slackRoute.evaluateRoute({ type: "PipelineNotification" });
+      expect(channel).toBe("#pipeline-ssm");
+      expect(mockReadFile).toHaveBeenCalledWith("/path/to/nonexistent/config.json", "utf8");
+      expect(ssmMock.calls()).toHaveLength(1); // Should fallback to SSM
+    });
+
+    it("should load routes from SSM parameter store when SLACK_ROUTES_CONFIG_FILE is not set", async () => {
+      const mockConfig = {
+        slack: {
+          routes: [{ expression: "type:PipelineNotification", channel: "#pipeline" }],
+        },
+      };
+
+      delete process.env.SLACK_ROUTES_CONFIG_FILE;
       ssmMock.on(GetParameterCommand).resolves({
         Parameter: {
           Value: JSON.stringify(mockConfig),
@@ -38,9 +86,12 @@ describe("SlackRoute", () => {
 
       const channel = slackRoute.evaluateRoute({ type: "PipelineNotification" });
       expect(channel).toBe("#pipeline");
+      expect(mockReadFile).not.toHaveBeenCalled(); // Should not try to read file
+      expect(ssmMock.calls()).toHaveLength(1);
     });
 
     it("should handle missing parameter gracefully", async () => {
+      delete process.env.SLACK_ROUTES_CONFIG_FILE;
       ssmMock.on(GetParameterCommand).rejects(new Error("Parameter not found"));
 
       await slackRoute.load();

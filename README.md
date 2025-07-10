@@ -194,6 +194,19 @@ To obtain this token:
 
 The Slack channel name or ID where notifications should be sent. The bot must be invited to this channel.
 
+#### SLACK_ROUTES_CONFIG_FILE (optional, development only)
+
+**For local development and testing only.** Absolute path to a local JSON file containing Slack routing configuration. When this environment variable is set, Meerkat will load routing rules from the specified file instead of AWS Systems Manager Parameter Store.
+
+If the file cannot be read, Meerkat will automatically fall back to loading from AWS Parameter Store.
+
+Example:
+```bash
+SLACK_ROUTES_CONFIG_FILE=/home/user/meerkat/config/slack-routes.json
+```
+
+The file should contain the same JSON structure as documented in the Slack Message Routing section below.
+
 ## Slack Message Routing
 
 Meerkat supports advanced message routing for Slack, allowing you to send different types of notifications to different channels based on configurable rules. This is particularly useful for separating production alerts from development notifications, or routing different types of events to specialized channels.
@@ -240,7 +253,32 @@ Store your routing configuration as a JSON string in AWS Systems Manager Paramet
 
 #### Local File Configuration
 
-For development, create a JSON file (e.g., `slack-routes.json`) with the same structure and load it using the `loadFromFile()` method.
+For development, you can use a local JSON file instead of AWS Systems Manager Parameter Store by setting the `SLACK_ROUTES_CONFIG_FILE` environment variable to the absolute path of your configuration file.
+
+Example configuration file (`slack-routes.json`):
+```json
+{
+  "slack": {
+    "routes": [
+      {
+        "expression": "type:PipelineNotification&name~.*prod.*",
+        "channel": "#prod-pipeline"
+      },
+      {
+        "expression": "type:PipelineNotification",
+        "channel": "#general-pipeline"
+      }
+    ]
+  }
+}
+```
+
+Set the environment variable:
+```bash
+export SLACK_ROUTES_CONFIG_FILE=/absolute/path/to/slack-routes.json
+```
+
+If the file cannot be read, Meerkat will automatically fall back to loading from AWS Parameter Store.
 
 ### Routing Expression Syntax
 
@@ -450,6 +488,17 @@ this variable is not required as the SDK will use the role assigned to the Lambd
 
 For the details of setting up AWS profiles see:
 https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html
+
+#### SLACK_ROUTES_CONFIG_FILE (development only)
+
+Absolute path to a local JSON file containing Slack routing configuration. When set, Meerkat will load routing rules from this file instead of AWS Systems Manager Parameter Store. If the file cannot be read, it will automatically fall back to AWS Parameter Store.
+
+Example:
+```bash
+SLACK_ROUTES_CONFIG_FILE=/home/user/meerkat/config/slack-routes.json
+```
+
+A sample configuration file is provided at `config/slack-routes-sample.json`.
 
 #### DYNAMO_ENDPOINT
 

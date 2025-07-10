@@ -10,7 +10,7 @@ import * as fs from "fs-extra";
  * }
  */
 export interface SlackRouteRule {
-  /** 
+  /**
    * The routing expression to evaluate
    * @see {@link SlackRoute.evaluateExpression} for expression syntax
    */
@@ -42,24 +42,24 @@ export interface SlackRouteConfig {
 
 /**
  * Handles routing of messages to Slack channels based on configurable rules
- * 
+ *
  * The SlackRoute class supports loading routing configuration from either:
  * 1. AWS Systems Manager Parameter Store (for production use)
  * 2. Local JSON file (for development/testing)
- * 
+ *
  * Routing rules are evaluated in order and the first matching rule determines
  * the target channel.
- * 
+ *
  * @example
  * ```typescript
  * // Load from SSM Parameter Store
  * const router = new SlackRoute("/my/param/path");
  * await router.load();
- * 
+ *
  * // Or load from local file
  * const router = new SlackRoute();
  * await router.loadFromFile("./config.json");
- * 
+ *
  * // Evaluate a message
  * const channel = router.evaluateRoute({
  *   type: "PipelineNotification",
@@ -77,27 +77,45 @@ export class SlackRoute {
     this.parameterName = parameterName;
     this.config = {
       slack: {
-        routes: []
-      }
+        routes: [],
+      },
     };
   }
 
   /**
-   * Load routing configuration from SSM Parameter Store
+   * Load routing configuration from either local file (if SLACK_ROUTES_CONFIG_FILE is set)
+   * or SSM Parameter Store
    */
   public async load(): Promise<void> {
+    const configFilePath = process.env.SLACK_ROUTES_CONFIG_FILE;
+
+    // If development config file path is specified, load from file system
+    if (configFilePath) {
+      try {
+        console.log(`Loading Slack routes from local file: ${configFilePath}`);
+        await this.loadFromFile(configFilePath);
+        return;
+      } catch (error) {
+        console.error(`Failed to load slack routes from file ${configFilePath}:`, error);
+        console.log("Falling back to AWS Parameter Store...");
+        // Continue to AWS Parameter Store fallback
+      }
+    }
+
+    // Default behavior: load from AWS Parameter Store
     try {
       const command = new GetParameterCommand({
-        Name: this.parameterName
+        Name: this.parameterName,
       });
       const response = await this.ssmClient.send(command);
-      
+
       if (response.Parameter?.Value) {
         this.config = JSON.parse(response.Parameter.Value);
       }
     } catch (error) {
-      console.error("Failed to load slack routes:", error);
+      console.error("Failed to load slack routes from AWS Parameter Store:", error);
       // If parameter doesn't exist, we'll use empty default config
+      console.log("Using default empty routing configuration");
     }
   }
 
@@ -110,7 +128,7 @@ export class SlackRoute {
         Name: this.parameterName,
         Value: JSON.stringify(this.config),
         Type: "String",
-        Overwrite: true
+        Overwrite: true,
       });
       await this.ssmClient.send(command);
     } catch (error) {
@@ -152,40 +170,40 @@ export class SlackRoute {
 
   /**
    * Evaluate a single routing expression against a message
-   * 
+   *
    * Expression syntax supports the following operators:
    * - `:` for exact value match (e.g., `type:PipelineNotification`)
    * - `~` for regex match (e.g., `name~.*prod.*`)
    * - `!` for NOT (e.g., `!type:AlarmNotification`)
    * - `&` for AND (e.g., `type:Pipeline&status:FAILED`)
    * - `|` for OR (e.g., `type:Pipeline|type:Deployment`)
-   * 
+   *
    * Expressions can reference nested properties using dot notation (e.g., `alert.severity:HIGH`)
-   * 
+   *
    * @example
    * Simple property match:
    * ```
    * type:PipelineNotification
    * ```
-   * 
+   *
    * @example
    * Regex match with AND condition:
    * ```
    * type:PipelineNotification&name~.*prod.*
    * ```
-   * 
+   *
    * @example
    * NOT condition:
    * ```
    * !type:AlarmNotification
    * ```
-   * 
+   *
    * @example
    * OR condition:
    * ```
    * type:PipelineNotification|type:AlarmNotification
    * ```
-   * 
+   *
    * @example
    * Nested property with multiple conditions:
    * ```
@@ -196,13 +214,13 @@ export class SlackRoute {
     // Handle OR conditions
     if (expression.includes("|")) {
       const parts = expression.split("|");
-      return parts.some(part => this.evaluateExpression(part.trim(), message));
+      return parts.some((part) => this.evaluateExpression(part.trim(), message));
     }
 
     // Handle AND conditions
     if (expression.includes("&")) {
       const parts = expression.split("&");
-      return parts.every(part => this.evaluateExpression(part.trim(), message));
+      return parts.every((part) => this.evaluateExpression(part.trim(), message));
     }
 
     // Handle NOT conditions

@@ -2,35 +2,47 @@
   "slack": {
     "routes": [
       {
+        "expression": "type:PipelineNotification&name~.*prod.*&successfull:false",
+        "channel": "#prod-failures"
+      },
+      {
         "expression": "type:PipelineNotification&name~.*prod.*",
-        "channel": "#prod-pipelines"
-      },
-      {
-        "expression": "type:PipelineNotification&name~.*dev.*",
-        "channel": "#dev-pipelines"
-      },
-      {
-        "expression": "type:PipelineNotification&status:FAILED",
-        "channel": "#pipeline-failures"
-      },
-      {
-        "expression": "type:AlarmNotification&alert.severity:HIGH",
-        "channel": "#high-priority"
-      },
-      {
-        "expression": "type:AlarmNotification&alert.status~FAIL.*",
-        "channel": "#alerts"
-      },
-      {
-        "expression": "type:DeploymentNotification&environment:production",
         "channel": "#prod-deployments"
       },
       {
-        "expression": "type:DeploymentNotification|type:PipelineNotification",
-        "channel": "#ci-cd"
+        "expression": "type:PipelineNotification&name~.*test.*",
+        "channel": "#test-deployments"
       },
       {
-        "expression": "!type:AlarmNotification&!type:PipelineNotification",
+        "expression": "type:PipelineNotification&name~.*dev.*",
+        "channel": "#dev-deployments"
+      },
+      {
+        "expression": "type:AlarmNotification&alert.name~.*(Critical|Emergency).*",
+        "channel": "#critical-alerts"
+      },
+      {
+        "expression": "type:AlarmNotification&alert.name~.*Database.*",
+        "channel": "#database-team"
+      },
+      {
+        "expression": "type:ManualApprovalNotification",
+        "channel": "#approvals"
+      },
+      {
+        "expression": "type:PipelineNotification&successfull:false",
+        "channel": "#pipeline-failures"
+      },
+      {
+        "expression": "type:PipelineNotification",
+        "channel": "#general-deployments"
+      },
+      {
+        "expression": "type:AlarmNotification",
+        "channel": "#general-alerts"
+      },
+      {
+        "expression": "type:SimpleNotification",
         "channel": "#general"
       }
     ]
