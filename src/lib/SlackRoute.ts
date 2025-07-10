@@ -220,7 +220,10 @@ export class SlackRoute {
     // Handle AND conditions
     if (expression.includes("&")) {
       const parts = expression.split("&");
-      return parts.every((part) => this.evaluateExpression(part.trim(), message));
+      return parts.every((part) => {
+        const result = this.evaluateExpression(part.trim(), message);
+        return result;
+      });
     }
 
     // Handle NOT conditions

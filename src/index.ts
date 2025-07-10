@@ -21,16 +21,26 @@ const CODE_PROVIDER = GIT_PROVIDER.toLowerCase() === "bitbucket" ? new BitBucket
 
 const meerkat = new Meerkat(DYNAMO_DB, CODE_PROVIDER, CHAT_SERVICE);
 
-/* Harness */
-// async function debug() {
-//   console.log(`v${version}`);
-// }
-// debug();
+// Global error handlers for debugging
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('Full error object:', JSON.stringify(reason, Object.getOwnPropertyNames(reason)));
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+});
+
 
 export const handler: SNSHandler = async (event: SNSEvent, context?: Context) => {
-  console.log(`v${version}`);
-  if (TRACE_EVENTS) {
-    console.log(event.Records[0].Sns.Message);
+  try {
+    console.log(`v${version}`);
+    if (TRACE_EVENTS) {
+      console.log(event.Records[0].Sns.Message);
+    }
+    await meerkat.main(event);
+  } catch (error) {
+    console.error("Handler error:", error);
+    throw error;
   }
-  await meerkat.main(event);
 };
