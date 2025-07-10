@@ -1,4 +1,4 @@
-import { Commit, AlarmNotification, PipelineCodeBuildFailure, PipelineCodeDeployFailure, ManualApprovalAttributes } from "../types/common";
+import { Commit, PipelineCodeBuildFailure, PipelineCodeDeployFailure, ManualApprovalAttributes } from "../types/common";
 
 interface SlackBlockType {
   type: string;

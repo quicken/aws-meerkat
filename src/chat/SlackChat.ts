@@ -6,6 +6,7 @@ import {
   SimpleNotification,
 } from "../types/common";
 import { Slack, SlackMessageType } from "../lib/Slack";
+import { SlackRoute } from "../lib/SlackRoute";
 import { Chat } from "./Chat";
 
 
@@ -16,10 +17,20 @@ import { Chat } from "./Chat";
 
 export class SlackChat extends Chat {
   private slack = new Slack();
+  private slackRoute = new SlackRoute();
+
+  constructor() {
+    super();
+    // Load routing configuration when instantiated
+    this.slackRoute.load().catch(err => {
+      console.error("Failed to load slack routing configuration:", err);
+    });
+  }
 
   /** Formats and then sends a notification to Slack. */
   sendNotification = async (notification: Notification) => {
-    const slackChannel = process.env.SLACK_CHANNEL || "";
+    // Default channel from environment if no routing match
+    const defaultChannel = process.env.SLACK_CHANNEL || "";
     let slackMessage: SlackMessageType | null = null;
 
     switch (notification.type) {
@@ -62,7 +73,9 @@ export class SlackChat extends Chat {
     }
 
     if (slackMessage) {
-      await this.slack.postMessageToChannel(slackMessage, slackChannel);
+      // Determine target channel based on routing rules
+      const targetChannel = this.slackRoute.evaluateRoute(notification) || defaultChannel;
+      await this.slack.postMessageToChannel(slackMessage, targetChannel);
     }
   };
 }

@@ -194,6 +194,244 @@ To obtain this token:
 
 The Slack channel name or ID where notifications should be sent. The bot must be invited to this channel.
 
+## Slack Message Routing
+
+Meerkat supports advanced message routing for Slack, allowing you to send different types of notifications to different channels based on configurable rules. This is particularly useful for separating production alerts from development notifications, or routing different types of events to specialized channels.
+
+### Routing Configuration
+
+Routing rules can be configured in two ways:
+
+1. **AWS Systems Manager Parameter Store** (recommended for production)
+2. **Local JSON file** (for development/testing)
+
+#### AWS Systems Manager Configuration
+
+Store your routing configuration as a JSON string in AWS Systems Manager Parameter Store with the parameter name `/meerkat/slack/routes`:
+
+```json
+{
+  "slack": {
+    "routes": [
+      {
+        "expression": "type:PipelineNotification&name~.*prod.*",
+        "channel": "#prod-pipeline"
+      },
+      {
+        "expression": "type:PipelineNotification&name~.*test.*",
+        "channel": "#test-pipeline"
+      },
+      {
+        "expression": "type:AlarmNotification&alert.name~.*Critical.*",
+        "channel": "#critical-alerts"
+      },
+      {
+        "expression": "type:PipelineNotification",
+        "channel": "#general-pipeline"
+      },
+      {
+        "expression": "type:AlarmNotification",
+        "channel": "#alerts"
+      }
+    ]
+  }
+}
+```
+
+#### Local File Configuration
+
+For development, create a JSON file (e.g., `slack-routes.json`) with the same structure and load it using the `loadFromFile()` method.
+
+### Routing Expression Syntax
+
+Routing expressions support powerful filtering capabilities with the following operators:
+
+#### Basic Operators
+
+- **`:` (Exact Match)** - Matches exact values
+  ```
+  type:PipelineNotification
+  ```
+
+- **`~` (Regex Match)** - Matches using regular expressions
+  ```
+  name~.*prod.*
+  ```
+
+- **`!` (NOT)** - Negates the condition
+  ```
+  !type:AlarmNotification
+  ```
+
+- **`&` (AND)** - All conditions must be true
+  ```
+  type:PipelineNotification&name~.*prod.*
+  ```
+
+- **`|` (OR)** - Any condition can be true
+  ```
+  type:PipelineNotification|type:AlarmNotification
+  ```
+
+#### Nested Property Access
+
+Use dot notation to access nested object properties:
+
+```
+alert.name:HighCPUUsage
+alert.severity:HIGH
+commit.author~.*john.*
+```
+
+### Expression Examples
+
+#### Pipeline Routing
+
+```json
+{
+  "expression": "type:PipelineNotification&name~.*prod.*",
+  "channel": "#prod-deployments"
+}
+```
+Routes production pipeline notifications to `#prod-deployments`
+
+```json
+{
+  "expression": "type:PipelineNotification&successfull:false",
+  "channel": "#pipeline-failures"
+}
+```
+Routes failed pipeline notifications to `#pipeline-failures`
+
+#### Alarm Routing
+
+```json
+{
+  "expression": "type:AlarmNotification&alert.name~.*Database.*",
+  "channel": "#database-alerts"
+}
+```
+Routes database-related alarms to `#database-alerts`
+
+```json
+{
+  "expression": "type:AlarmNotification&alert.name~.*(Critical|High).*",
+  "channel": "#critical-alerts"
+}
+```
+Routes critical or high severity alarms to `#critical-alerts`
+
+#### Complex Routing
+
+```json
+{
+  "expression": "type:PipelineNotification&(name~.*prod.*|name~.*staging.*)",
+  "channel": "#important-deployments"
+}
+```
+Routes production or staging pipeline notifications
+
+```json
+{
+  "expression": "!type:AlarmNotification&!type:PipelineNotification",
+  "channel": "#other-notifications"
+}
+```
+Routes all notifications except alarms and pipeline events
+
+### Notification Types and Properties
+
+#### PipelineNotification
+- `type`: "PipelineNotification"
+- `name`: Pipeline name
+- `successfull`: boolean (true/false)
+- `commit.author`: Commit author name
+- `commit.authorEmail`: Commit author email
+- `commit.summary`: Commit message
+- `failureDetail.type`: "CodeBuild" or "CodeDeploy" (when failed)
+
+#### AlarmNotification
+- `type`: "AlarmNotification"
+- `alert.name`: Alarm name
+- `alert.description`: Alarm description
+- `alert.reason`: Alarm trigger reason
+- `alert.type`: "alarm"
+- `alert.date`: Timestamp
+
+#### SimpleNotification
+- `type`: "SimpleNotification"
+- `subject`: Message subject
+- `message`: Message body
+
+#### ManualApprovalNotification
+- `type`: "ManualApprovalNotification"
+- `name`: Approval name
+- `approvalAttributes.link`: Approval link
+- `approvalAttributes.comment`: Approval comment
+
+### Route Evaluation Order
+
+Routes are evaluated in the order they appear in the configuration. The **first matching rule** determines the target channel. This means:
+
+1. Place more specific rules first
+2. Place general catch-all rules last
+3. Test your routing logic thoroughly
+
+### Example Complete Configuration
+
+```json
+{
+  "slack": {
+    "routes": [
+      {
+        "expression": "type:PipelineNotification&name~.*prod.*&successfull:false",
+        "channel": "#prod-failures"
+      },
+      {
+        "expression": "type:PipelineNotification&name~.*prod.*",
+        "channel": "#prod-deployments"
+      },
+      {
+        "expression": "type:PipelineNotification&name~.*test.*",
+        "channel": "#test-deployments"
+      },
+      {
+        "expression": "type:AlarmNotification&alert.name~.*(Critical|Emergency).*",
+        "channel": "#critical-alerts"
+      },
+      {
+        "expression": "type:AlarmNotification&alert.name~.*Database.*",
+        "channel": "#database-team"
+      },
+      {
+        "expression": "type:ManualApprovalNotification",
+        "channel": "#approvals"
+      },
+      {
+        "expression": "type:PipelineNotification",
+        "channel": "#general-deployments"
+      },
+      {
+        "expression": "type:AlarmNotification",
+        "channel": "#general-alerts"
+      },
+      {
+        "expression": "!type:AlarmNotification",
+        "channel": "#general"
+      }
+    ]
+  }
+}
+```
+
+### Troubleshooting Routing
+
+- **No messages received**: Check that your expressions match the actual notification properties
+- **Wrong channel**: Verify rule order - earlier rules take precedence
+- **Regex not working**: Test your regular expressions separately and escape special characters
+- **Route not loading**: Check AWS Systems Manager permissions and parameter name
+- **Fallback behavior**: If no routes match, messages go to the default `SLACK_CHANNEL`
+
 ## Development Environment
 
 Create a .env file in the project root and specify the environment variables.

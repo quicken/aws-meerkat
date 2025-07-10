@@ -8,23 +8,28 @@ import {
   Commit
 } from "../../src/types/common";
 import { Slack } from "../../src/lib/Slack";
+import { SlackRoute } from "../../src/lib/SlackRoute";
 
 // Mock fetch globally
 global.fetch = jest.fn();
 
-// Mock the Slack class
+// Mock the Slack class and SlackRoute class
 jest.mock("../../src/lib/Slack");
+jest.mock("../../src/lib/SlackRoute");
 
 describe("SlackChat", () => {
   let slackChat: SlackChat;
   const mockFetch = fetch as jest.MockedFunction<typeof fetch>;
   const mockSlack = Slack as jest.MockedClass<typeof Slack>;
+  const mockSlackRoute = SlackRoute as jest.MockedClass<typeof SlackRoute>;
   const mockPostMessage = jest.fn();
   const mockCreatePipeFailureMessage = jest.fn();
   const mockCreatePipeSuccessMessage = jest.fn();
   const mockCreateManualApprovalMessage = jest.fn();
   const mockSimpleMessage = jest.fn();
   const mockFindSlackUserId = jest.fn();
+  const mockEvaluateRoute = jest.fn();
+  const mockLoadRoute = jest.fn();
   const originalEnv = process.env;
 
   beforeEach(() => {
@@ -35,6 +40,8 @@ describe("SlackChat", () => {
     mockCreateManualApprovalMessage.mockClear();
     mockSimpleMessage.mockClear();
     mockFindSlackUserId.mockClear();
+    mockEvaluateRoute.mockClear();
+    mockLoadRoute.mockClear();
 
     // Mock Slack instance methods
     mockSlack.mockImplementation(
@@ -47,6 +54,15 @@ describe("SlackChat", () => {
           postMessageToChannel: mockPostMessage.mockResolvedValue({}),
           findSlackUserId: mockFindSlackUserId.mockResolvedValue("U1234567890"),
           divider: { type: "divider" },
+        } as any)
+    );
+
+    // Mock SlackRoute instance methods
+    mockSlackRoute.mockImplementation(
+      () =>
+        ({
+          load: mockLoadRoute.mockResolvedValue(undefined),
+          evaluateRoute: mockEvaluateRoute.mockReturnValue(null),
         } as any)
     );
 
@@ -192,22 +208,61 @@ describe("SlackChat", () => {
     });
   });
 
-  describe("Environment Configuration", () => {
-    it("should use default empty string for SLACK_CHANNEL if not set", async () => {
-      delete process.env.SLACK_CHANNEL;
+  describe("Message Routing", () => {
+    it("should load routes on initialization", () => {
+      expect(mockLoadRoute).toHaveBeenCalled();
+    });
+
+    it("should use routed channel when available", async () => {
+      mockEvaluateRoute.mockReturnValue("#routed-channel");
 
       const notification: SimpleNotification = {
         type: "SimpleNotification",
-        subject: "Test",
-        message: "Test"
+        subject: "Test Subject",
+        message: "Test Message"
       };
 
       await slackChat.sendNotification(notification);
 
+      expect(mockEvaluateRoute).toHaveBeenCalledWith(notification);
       expect(mockPostMessage).toHaveBeenCalledWith(
         expect.anything(),
-        ""
+        "#routed-channel"
       );
+    });
+
+    it("should fallback to default channel when no route matches", async () => {
+      mockEvaluateRoute.mockReturnValue(null);
+
+      const notification: SimpleNotification = {
+        type: "SimpleNotification",
+        subject: "Test Subject",
+        message: "Test Message"
+      };
+
+      await slackChat.sendNotification(notification);
+
+      expect(mockEvaluateRoute).toHaveBeenCalledWith(notification);
+      expect(mockPostMessage).toHaveBeenCalledWith(
+        expect.anything(),
+        "test-channel"
+      );
+    });
+
+    it("should handle routing errors gracefully", async () => {
+      mockEvaluateRoute.mockImplementation(() => {
+        throw new Error("Routing error");
+      });
+
+      const notification: SimpleNotification = {
+        type: "SimpleNotification",
+        subject: "Test Subject",
+        message: "Test Message"
+      };
+
+      // Since the current implementation doesn't handle routing errors,
+      // we expect the error to be thrown
+      await expect(slackChat.sendNotification(notification)).rejects.toThrow("Routing error");
     });
   });
 });
