@@ -61,14 +61,14 @@ Parameters:
     Description: "The discord webhook to which notifications are posted."
     Default: ""
 
-  EnvSlackWebhook:
-    Type: String
-    Description: "The Slack webhook to which notifications are posted. Only required if using Slack."
-    Default: ""
-
   EnvSlackBotToken:
     Type: String
-    Description: "The Slack Bot Token (xoxb-) for advanced features like user mentions. Optional."
+    Description: "The Slack Bot Token (xoxb-) required for sending messages and user mentions."
+    Default: ""
+
+  EnvSlackChannel:
+    Type: String
+    Description: "The Slack channel name or ID where notifications should be sent."
     Default: ""
 
   EnvDeployArn:
@@ -240,8 +240,8 @@ Resources:
           DISCORD_AVATAR: !Ref EnvDiscordAvatar
           DISCORD_USERNAME: !Ref EnvDiscordUsername
           DISCORD_WEBHOOK: !Ref EnvDiscordWebhook
-          SLACK_WEBHOOK: !Ref EnvSlackWebhook
           SLACK_BOT_TOKEN: !Ref EnvSlackBotToken
+          SLACK_CHANNEL: !Ref EnvSlackChannel
           DEPLOY_ARN: !Ref EnvDeployArn
           TRACE_EVENTS: !Ref EnvTraceEvents
       PackageType: Zip
