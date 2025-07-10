@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: "Provisions the stack required by Meerkat the devops bot. Meerkat can be subscribed to SNS Topics and is especially usefull when listening for code pipeline life cycle events and cloudwatch alarms."
 
-# devops-pipeline-monitor v1.8.0
+# devops-pipeline-monitor v2.0.0
 Parameters:
   NameSpace:
     Type: String
@@ -20,7 +20,7 @@ Parameters:
   CodeKey:
     Type: String
     Description: The S3 key to the zip file that contains the lambda source code. (no leading slash)
-    Default: code-pipeline-monitor.v1.8.0.zip
+    Default: code-pipeline-monitor.v2.0.6.zip
 
   EnvGitProvider:
     Type: String
@@ -90,6 +90,24 @@ Parameters:
     Default: meerkatbot
 
 Resources:
+  SlackRoutesParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /meerkat/slack/routes
+      Type: String
+      Value: '{
+        "slack": {
+          "routes": [
+          {
+            "expression": "type:PipelineNotification&name~^meerkat.*-prd$",
+            "channel": "#meerkat"
+          }]
+        }
+      }'
+      Description: Initial Slack routing configuration for Meerkat bot
+      Tags:
+        costcenter: !Ref CostCenter
+
   DBTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -255,6 +273,7 @@ Resources:
       PackageType: Zip
       Role: !GetAtt LambdaServiceRole.Arn
       Runtime: nodejs20.x
+      Timeout: 15
       Code:
         S3Bucket: !Ref CodeBucketName
         S3Key: !Ref CodeKey
