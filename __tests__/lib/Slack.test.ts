@@ -5,11 +5,107 @@ import { Commit, PipelineCodeBuildFailure, PipelineCodeDeployFailure, ManualAppr
 const INTEGRATION_TESTS = process.env.INTEGRATION_TESTS === "true";
 const SLACK_CHANNEL = process.env.SLACK_CHANNEL || "";
 
+// Mock fetch globally
+global.fetch = jest.fn();
+
 describe("Slack", () => {
   let slack: Slack;
+  const mockFetch = fetch as jest.MockedFunction<typeof fetch>;
+  const originalEnv = process.env;
 
   beforeEach(() => {
+    mockFetch.mockClear();
     slack = new Slack();
+
+    // Mock environment variables
+    process.env = {
+      ...originalEnv,
+      SLACK_WEBHOOK: "https://hooks.slack.com/test",
+      SLACK_BOT_TOKEN: "xoxb-test-token",
+    };
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+  });
+
+  describe("User Lookup", () => {
+    it("should find user by email", async () => {
+      // Mock successful user lookup by email
+      mockFetch.mockResolvedValueOnce({
+        json: async () => ({
+          ok: true,
+          user: { id: "U1234567890", name: "john.doe" },
+        }),
+      } as Response);
+
+      const userId = await slack.findSlackUserId("john.doe@example.com", "John Doe");
+
+      // Verify user lookup was called
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://slack.com/api/users.lookupByEmail?email=john.doe%40example.com",
+        expect.objectContaining({
+          method: "GET",
+          headers: expect.objectContaining({
+            Authorization: "Bearer xoxb-test-token",
+          }),
+        })
+      );
+
+      expect(userId).toBe("U1234567890");
+    });
+
+    it("should fallback to name lookup when email lookup fails", async () => {
+      // Mock failed email lookup, successful name lookup
+      mockFetch
+        .mockResolvedValueOnce({
+          json: async () => ({
+            ok: false,
+            error: "users_not_found",
+          }),
+        } as Response)
+        .mockResolvedValueOnce({
+          json: async () => ({
+            ok: true,
+            members: [{ id: "U1234567890", name: "john.doe", real_name: "John Doe", display_name: "John" }],
+          }),
+        } as Response);
+
+      const userId = await slack.findSlackUserId("john.doe@example.com", "John Doe");
+
+      // Verify both email and name lookup were called
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://slack.com/api/users.lookupByEmail?email=john.doe%40example.com",
+        expect.anything()
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://slack.com/api/users.list",
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: "Bearer xoxb-test-token",
+          }),
+        })
+      );
+
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(userId).toBe("U1234567890");
+    });
+
+    it("should return null without SLACK_BOT_TOKEN configured", async () => {
+      // Reset environment without SLACK_BOT_TOKEN
+      process.env = {
+        ...originalEnv,
+        SLACK_WEBHOOK: "https://hooks.slack.com/test",
+      };
+      delete process.env.SLACK_BOT_TOKEN;
+
+      const userId = await slack.findSlackUserId("john.doe@example.com", "John Doe");
+
+      // Should not call user lookup APIs
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(userId).toBeNull();
+    });
   });
 
   describe("Message Creation", () => {
