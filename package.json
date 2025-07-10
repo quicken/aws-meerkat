@@ -1,6 +1,6 @@
 {
   "name": "aws-code-pipeline-monitor",
-  "version": "1.8.1",
+  "version": "2.0.0",
   "main": "index.js",
   "engines": {
     "node": ">=20.0.0"
