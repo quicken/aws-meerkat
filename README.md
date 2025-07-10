@@ -1,4 +1,4 @@
-# Meerkat - AWS DevOp Bot for Discord
+# Meerkat - AWS DevOp Bot for Slack and Discord
 
 ![image info](https://raw.githubusercontent.com/wiki/quicken/aws-meerkat/img/meerkat-sml.png)
 
