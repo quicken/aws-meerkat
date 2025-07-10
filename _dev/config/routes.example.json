@@ -1,0 +1,38 @@
+{
+  "slack": {
+    "routes": [
+      {
+        "expression": "type:PipelineNotification&name~.*prod.*",
+        "channel": "#prod-pipelines"
+      },
+      {
+        "expression": "type:PipelineNotification&name~.*dev.*",
+        "channel": "#dev-pipelines"
+      },
+      {
+        "expression": "type:PipelineNotification&status:FAILED",
+        "channel": "#pipeline-failures"
+      },
+      {
+        "expression": "type:AlarmNotification&alert.severity:HIGH",
+        "channel": "#high-priority"
+      },
+      {
+        "expression": "type:AlarmNotification&alert.status~FAIL.*",
+        "channel": "#alerts"
+      },
+      {
+        "expression": "type:DeploymentNotification&environment:production",
+        "channel": "#prod-deployments"
+      },
+      {
+        "expression": "type:DeploymentNotification|type:PipelineNotification",
+        "channel": "#ci-cd"
+      },
+      {
+        "expression": "!type:AlarmNotification&!type:PipelineNotification",
+        "channel": "#general"
+      }
+    ]
+  }
+}
