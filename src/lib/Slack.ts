@@ -46,6 +46,29 @@ export class Slack {
     type: "divider",
   };
 
+  /**
+   * Wrapper for fetch with timeout to prevent hanging requests
+   */
+  private async fetchWithTimeout(url: string, options: any, timeoutMs: number = 10000): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === "AbortError") {
+        throw new Error(`Request timeout after ${timeoutMs}ms`);
+      }
+      throw error;
+    }
+  }
+
   public createPipeFailureMessage(
     pipeLineName: string,
     commit: Commit,
@@ -273,16 +296,21 @@ export class Slack {
     const slackBotToken = process.env.SLACK_BOT_TOKEN || "";
 
     if (!slackBotToken) {
+      console.log("No SLACK_BOT_TOKEN provided, skipping user lookup");
       return null;
     }
 
     try {
-      const response = await fetch(`https://slack.com/api/users.lookupByEmail?email=${encodeURIComponent(email)}`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${slackBotToken}`,
+      const response = await this.fetchWithTimeout(
+        `https://slack.com/api/users.lookupByEmail?email=${encodeURIComponent(email)}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${slackBotToken}`,
+          },
         },
-      });
+        5000
+      ); // 5 second timeout
 
       const data = (await response.json()) as SlackUserLookupResponse;
 
@@ -306,15 +334,20 @@ export class Slack {
     const slackBotToken = process.env.SLACK_BOT_TOKEN || "";
 
     if (!slackBotToken) {
+      console.log("No SLACK_BOT_TOKEN provided, skipping user lookup");
       return null;
     }
 
     try {
-      const response = await fetch("https://slack.com/api/users.list", {
-        headers: {
-          Authorization: `Bearer ${slackBotToken}`,
+      const response = await this.fetchWithTimeout(
+        "https://slack.com/api/users.list",
+        {
+          headers: {
+            Authorization: `Bearer ${slackBotToken}`,
+          },
         },
-      });
+        5000
+      ); // 5 second timeout
 
       const data = (await response.json()) as SlackUsersListResponse;
 
@@ -328,7 +361,7 @@ export class Slack {
 
       return null;
     } catch (error) {
-      console.error("Failed to lookup user by name:", error);
+      console.log("Failed to lookup user by name:", error);
       return null;
     }
   }

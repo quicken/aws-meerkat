@@ -260,9 +260,14 @@ describe("SlackChat", () => {
         message: "Test Message"
       };
 
-      // Since the current implementation doesn't handle routing errors,
-      // we expect the error to be thrown
-      await expect(slackChat.sendNotification(notification)).rejects.toThrow("Routing error");
+      // The current implementation now handles routing errors gracefully
+      // and continues with the default channel
+      await slackChat.sendNotification(notification);
+
+      expect(mockPostMessage).toHaveBeenCalledWith(
+        expect.anything(),
+        "test-channel"
+      );
     });
   });
 });

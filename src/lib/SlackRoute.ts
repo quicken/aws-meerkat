@@ -96,7 +96,7 @@ export class SlackRoute {
         await this.loadFromFile(configFilePath);
         return;
       } catch (error) {
-        console.error(`Failed to load slack routes from file ${configFilePath}:`, error);
+        console.log(`Failed to load slack routes from file ${configFilePath}:`, error);
         console.log("Falling back to AWS Parameter Store...");
         // Continue to AWS Parameter Store fallback
       }
@@ -113,7 +113,7 @@ export class SlackRoute {
         this.config = JSON.parse(response.Parameter.Value);
       }
     } catch (error) {
-      console.error("Failed to load slack routes from AWS Parameter Store:", error);
+      console.log("Failed to load slack routes from AWS Parameter Store:", error);
       // If parameter doesn't exist, we'll use empty default config
       console.log("Using default empty routing configuration");
     }
@@ -132,7 +132,7 @@ export class SlackRoute {
       });
       await this.ssmClient.send(command);
     } catch (error) {
-      console.error("Failed to save slack routes:", error);
+      console.log("Failed to save slack routes:", error);
       throw error;
     }
   }
@@ -244,7 +244,7 @@ export class SlackRoute {
         const regex = new RegExp(matcher.trim());
         return regex.test(String(value));
       } catch (e) {
-        console.error("Invalid regex in route expression:", e);
+        console.log("Invalid regex in route expression:", e);
         return false;
       }
     }
