@@ -1,20 +1,16 @@
 import "dotenv/config";
 import { Slack } from "../../src/lib/Slack";
-import {
-  Commit,
-  AlarmNotification,
-  PipelineCodeBuildFailure,
-  PipelineCodeDeployFailure,
-  ManualApprovalAttributes,
-} from "../../src/types/common";
+import { Commit, PipelineCodeBuildFailure, PipelineCodeDeployFailure, ManualApprovalAttributes } from "../../src/types/common";
 
-const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK || "";
+const INTEGRATION_TESTS = process.env.INTEGRATION_TESTS === "true";
+const SLACK_CHANNEL = process.env.SLACK_CHANNEL || "";
 
 test("create-default-message", async () => {
   const slack = new Slack();
   const message = slack.simpleMessage("Hello", "World");
-  //await slack.postMessage(message, SLACK_WEBHOOK);
-
+  if (INTEGRATION_TESTS) {
+    await slack.postMessageToChannel(message, SLACK_CHANNEL);
+  }
   expect(1).toBe(1);
 });
 
@@ -32,14 +28,11 @@ test("create-default-failed-message", async () => {
   };
 
   const slack = new Slack();
-  const message = slack.createPipeFailureMessage(
-    "Unit-Test",
-    commit,
-    buildFailure
-  );
+  const message = slack.createPipeFailureMessage("Unit-Test", commit, buildFailure, "");
 
-  //await slack.postMessage(message, SLACK_WEBHOOK);
-
+  if (INTEGRATION_TESTS) {
+    await slack.postMessageToChannel(message, SLACK_CHANNEL);
+  }
   expect(1).toBe(1);
 });
 
@@ -72,13 +65,11 @@ test("create-deploy-failed-message", async () => {
   };
 
   const slack = new Slack();
-  const message = slack.createPipeFailureMessage(
-    "Unit-Test",
-    commit,
-    deployFailure
-  );
+  const message = slack.createPipeFailureMessage("Unit-Test", commit, deployFailure, null);
 
-  //await slack.postMessage(message, SLACK_WEBHOOK);
+  if (INTEGRATION_TESTS) {
+    await slack.postMessageToChannel(message, SLACK_CHANNEL);
+  }
   expect(1).toBe(1);
 });
 
@@ -91,9 +82,10 @@ test("create-pipeline-success-message", async () => {
   };
 
   const slack = new Slack();
-  const message = slack.createPipeSuccessMessage("unit-test", commit);
-  //await slack.postMessage(message, SLACK_WEBHOOK);
-
+  const message = slack.createPipeSuccessMessage("unit-test", commit, null);
+  if (INTEGRATION_TESTS) {
+    await slack.postMessageToChannel(message, SLACK_CHANNEL);
+  }
   expect(1).toBe(1);
 });
 
@@ -104,12 +96,9 @@ test("create-manual-approval-required-message", async () => {
   };
 
   const slack = new Slack();
-  const message = slack.createManualApprovalMessage(
-    "unit-test",
-    approvalAttributes
-  );
-  //await slack.postMessage(message, SLACK_WEBHOOK);
-
+  const message = slack.createManualApprovalMessage("unit-test", approvalAttributes);
+  if (INTEGRATION_TESTS) {
+    await slack.postMessageToChannel(message, SLACK_CHANNEL);
+  }
   expect(1).toBe(1);
 });
-// worked for one hour
