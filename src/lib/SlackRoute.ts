@@ -1,171 +1,29 @@
-import { SSMClient, GetParameterCommand, PutParameterCommand } from "@aws-sdk/client-ssm";
-import * as fs from "fs-extra";
+import { SlackRouteRule } from "./MeerkatConfig";
+
+export { SlackRouteRule };
 
 /**
- * Represents a single routing rule with an expression and target channel
- * @example
- * {
- *   expression: "type:PipelineNotification&name~.*prod.*",
- *   channel: "#prod-pipeline"
- * }
- */
-export interface SlackRouteRule {
-  /**
-   * The routing expression to evaluate
-   * @see {@link SlackRoute.evaluateExpression} for expression syntax
-   */
-  expression: string;
-  /**
-   * The Slack channel to route to if expression matches
-   */
-  channel: string;
-}
-
-/**
- * Configuration structure for Slack routing rules
- * @example
- * {
- *   slack: {
- *     routes: [
- *       { expression: "type:PipelineNotification", channel: "#pipeline" },
- *       { expression: "type:AlarmNotification", channel: "#alerts" },
- *       { expression: "type:PipelineNotification&name~.*prod.*", channel: "#prod-pipeline" }
- *     ]
- *   }
- * }
- */
-export interface SlackRouteConfig {
-  slack: {
-    routes: SlackRouteRule[];
-  };
-}
-
-/**
- * Handles routing of messages to Slack channels based on configurable rules
+ * Handles routing of messages to Slack channels based on configurable rules.
  *
- * The SlackRoute class supports loading routing configuration from either:
- * 1. AWS Systems Manager Parameter Store (for production use)
- * 2. Local JSON file (for development/testing)
- *
- * Routing rules are evaluated in order and the first matching rule determines
- * the target channel.
- *
- * @example
- * ```typescript
- * // Load from SSM Parameter Store
- * const router = new SlackRoute("/my/param/path");
- * await router.load();
- *
- * // Or load from local file
- * const router = new SlackRoute();
- * await router.loadFromFile("./config.json");
- *
- * // Evaluate a message
- * const channel = router.evaluateRoute({
- *   type: "PipelineNotification",
- *   name: "my-prod-pipeline"
- * });
- * ```
+ * Rules are evaluated in order and the first matching rule determines the target channel.
  */
 export class SlackRoute {
-  private ssmClient: SSMClient;
-  private parameterName: string;
-  private config: SlackRouteConfig;
+  private readonly routes: SlackRouteRule[];
 
-  constructor(parameterName: string = "/meerkat/slack/routes") {
-    this.ssmClient = new SSMClient({});
-    this.parameterName = parameterName;
-    this.config = {
-      slack: {
-        routes: [],
-      },
-    };
-  }
-
-  /**
-   * Load routing configuration from either local file (if SLACK_ROUTES_CONFIG_FILE is set)
-   * or SSM Parameter Store
-   */
-  public async load(): Promise<void> {
-    const configFilePath = process.env.SLACK_ROUTES_CONFIG_FILE;
-
-    // If development config file path is specified, load from file system
-    if (configFilePath) {
-      try {
-        console.log(`Loading Slack routes from local file: ${configFilePath}`);
-        await this.loadFromFile(configFilePath);
-        return;
-      } catch (error) {
-        console.log(`Failed to load slack routes from file ${configFilePath}:`, error);
-        console.log("Falling back to AWS Parameter Store...");
-        // Continue to AWS Parameter Store fallback
-      }
-    }
-
-    // Default behavior: load from AWS Parameter Store
-    try {
-      const command = new GetParameterCommand({
-        Name: this.parameterName,
-      });
-      const response = await this.ssmClient.send(command);
-
-      if (response.Parameter?.Value) {
-        this.config = JSON.parse(response.Parameter.Value);
-      }
-    } catch (error) {
-      console.log("Failed to load slack routes from AWS Parameter Store:", error);
-      // If parameter doesn't exist, we'll use empty default config
-      console.log("Using default empty routing configuration");
-    }
-  }
-
-  /**
-   * Save current routing configuration to SSM Parameter Store
-   */
-  public async save(): Promise<void> {
-    try {
-      const command = new PutParameterCommand({
-        Name: this.parameterName,
-        Value: JSON.stringify(this.config),
-        Type: "String",
-        Overwrite: true,
-      });
-      await this.ssmClient.send(command);
-    } catch (error) {
-      console.log("Failed to save slack routes:", error);
-      throw error;
-    }
+  constructor(routes: SlackRouteRule[]) {
+    this.routes = routes;
   }
 
   /**
    * Evaluate a message against routing rules to determine target channel
    */
   public evaluateRoute(message: any): string | null {
-    for (const rule of this.config.slack.routes) {
+    for (const rule of this.routes) {
       if (this.evaluateExpression(rule.expression, message)) {
         return rule.channel;
       }
     }
     return null;
-  }
-
-  /**
-   * Load routing configuration from a local JSON file
-   * @param filePath Path to the JSON configuration file
-   * @throws {Error} If file cannot be read or parsed
-   * @example
-   * ```typescript
-   * await router.loadFromFile("./config/routes.json");
-   * ```
-   */
-  public async loadFromFile(filePath: string): Promise<void> {
-    try {
-      const fileContent = await fs.readFile(filePath, "utf8");
-      this.config = JSON.parse(fileContent);
-    } catch (error) {
-      console.error("Failed to load slack routes from file:", error);
-      throw error;
-    }
   }
 
   /**
@@ -214,7 +72,9 @@ export class SlackRoute {
     // Handle OR conditions
     if (expression.includes("|")) {
       const parts = expression.split("|");
-      return parts.some((part) => this.evaluateExpression(part.trim(), message));
+      return parts.some((part) =>
+        this.evaluateExpression(part.trim(), message),
+      );
     }
 
     // Handle AND conditions

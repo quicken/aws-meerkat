@@ -3,10 +3,10 @@ import { Commit } from "../types/common";
 
 export class GitHub {
   /** Username for calling the Bitbucket API.  */
-  private _username: string;
+  private readonly _username: string;
 
   /** Personal token from your github account.  */
-  private _token: string;
+  private readonly _token: string;
 
   /**
    *
@@ -29,28 +29,21 @@ export class GitHub {
    */
   fetchCommit = async (repo: string, commitId: string): Promise<Commit> => {
     const AUTHORIZATION = Buffer.from(
-      this._username + ":" + this._token
+      this._username + ":" + this._token,
     ).toString("base64");
 
-    const options = {
-      hostname: "api.github.com",
-      port: 443,
-      path: `/repos/${repo}/git/commits/${commitId}`,
-      method: "GET",
-      headers: {
-        Accept: "application/vnd.github.v3+json",
-        "User-Agent": "aws-codepipeline",
-        "Content-Type": "application/json",
-        Authorization: "Basic " + AUTHORIZATION,
+    const response = await Util.callEndpoint<any>(
+      `https://api.github.com/repos/${repo}/git/commits/${commitId}`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/vnd.github.v3+json",
+          "User-Agent": "aws-codepipeline",
+          "Content-Type": "application/json",
+          Authorization: "Basic " + AUTHORIZATION,
+        },
       },
-    };
-
-    let response = await Util.callEndpoint<any>(options, "");
-    if ([301, 302].includes(response.statuscode)) {
-      /* Follow the redirect. (301,302) */
-      options.path = response.body.url;
-      response = await Util.callEndpoint<any>(options, "");
-    }
+    );
 
     return {
       id: commitId,

@@ -1,6 +1,7 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { CodeDeployClient } from "@aws-sdk/client-codedeploy";
 import { CodeBuildClient } from "@aws-sdk/client-codebuild";
+import { CodePipelineClient } from "@aws-sdk/client-codepipeline";
 import { CodePipelineEvent } from "./types/AwsCodePipeline";
 import { Notification, RawMessage } from "./types/common";
 import { Chat } from "./chat/Chat";
@@ -13,8 +14,10 @@ import { SlackChat } from "./chat/SlackChat";
 import { PipeLog } from "./lib/PipeLog";
 import { CodeBuild } from "./lib/CodeBuild";
 import { CodeDeploy } from "./lib/CodeDeploy";
+import { CodePipeline } from "./lib/CodePipeline";
 import { BitBucket } from "./lib/BitBucket";
 import { GitHub } from "./lib/GitHub";
+import { loadConfig, MeerkatConfigData, resolveDeployArn } from "./lib/MeerkatConfig";
 import { SNSEvent } from "aws-lambda";
 
 const DB_TABLE = process.env.DB_TABLE || "devops-pipeline-monitor";
@@ -34,21 +37,22 @@ export class Meerkat {
    */
   dynamoDb: DynamoDBClient;
 
-  /** The service that will be used to retrieve commit information when
-   * processing AWS Code Pipeline events.  */
-  codeprovider: BitBucket | GitHub;
-
   /** Identifies the chat service that should be used to deliver notification.
    * If a service can not be mapped discord will be used. */
   chatService: string;
 
+  /** The AWS account ID where this Lambda runs. Used to skip cross-account
+   *  role assumption for events from the same account. Set from Lambda context. */
+  lambdaAccount: string = "";
+
+  private config: MeerkatConfigData | null = null;
+  private codeprovider!: BitBucket | GitHub;
+
   constructor(
     dynamoDb: DynamoDBClient,
-    codeprovider: BitBucket | GitHub,
-    chatService: string
+    chatService: string,
   ) {
     this.dynamoDb = dynamoDb;
-    this.codeprovider = codeprovider;
     this.chatService = chatService;
   }
 
@@ -60,6 +64,7 @@ export class Meerkat {
    */
   main = async (snsEvent: SNSEvent) => {
     try {
+      await this.ensureInitialized();
       const rawMessage = this.parseSnsEvent(snsEvent);
       return await this.handleMessage(rawMessage);
     } catch (error) {
@@ -67,6 +72,27 @@ export class Meerkat {
       throw error;
     }
   };
+
+  private async ensureInitialized(): Promise<void> {
+    if (!this.config) {
+      this.config = await loadConfig();
+      this.codeprovider = this.createCodeProvider(this.config);
+    }
+  }
+
+  private createCodeProvider(config: MeerkatConfigData): BitBucket | GitHub {
+    const provider = (process.env.GIT_PROVIDER || "").toLowerCase();
+    if (provider === "bitbucket") {
+      if (!config.bitbucket) {
+        throw new Error("Bitbucket config (email, token) is required in MEERKAT_CONFIG_PARAM");
+      }
+      return new BitBucket(config.bitbucket.email, config.bitbucket.token);
+    }
+    if (!config.github) {
+      throw new Error("GitHub config (username, token) is required in MEERKAT_CONFIG_PARAM");
+    }
+    return new GitHub(config.github.username, config.github.token);
+  }
 
   /**
    * Attempt to convert a SNS Topic Subscription event received by AWS Lambda to a rawMessage.
@@ -81,18 +107,18 @@ export class Meerkat {
   parseSnsEvent = (event: SNSEvent) => {
     const rawMessage: RawMessage = {
       isJson: false,
-      subject: "",
-      body: "",
+      subject: event.Records[0].Sns.Subject ?? "",
+      body: event.Records[0].Sns.Message,
     };
 
     try {
-      rawMessage.isJson = true;
-      rawMessage.subject = event.Records[0].Sns.Subject ?? "";
       rawMessage.body = JSON.parse(event.Records[0].Sns.Message);
-    } catch (err: any) {
-      rawMessage.isJson = false;
-      rawMessage.subject = event.Records[0].Sns.Subject ?? "";
-      rawMessage.body = event.Records[0].Sns.Message;
+      rawMessage.isJson = true;
+    } catch (err: unknown) {
+      console.log(
+        "parseSnsEvent: message is not JSON, treating as plain text",
+        err,
+      );
     }
 
     return rawMessage;
@@ -115,12 +141,13 @@ export class Meerkat {
    * @returns A notification or null if no notification should or can be sent.
    */
   handleMessage = async (
-    rawMessage: RawMessage
+    rawMessage: RawMessage,
   ): Promise<Notification | null> => {
+    await this.ensureInitialized();
     const bot = await this.botFactory(rawMessage);
     const notification = await bot.handleMessage(rawMessage);
     if (notification) {
-      const chat = this.chatFactory(this.chatService);
+      const chat = await this.chatFactory(this.chatService);
       await chat.sendNotification(notification);
       await bot.notificationSent();
       return notification;
@@ -144,7 +171,7 @@ export class Meerkat {
 
       if (
         body.detailType &&
-        body.detailType + "" === body.detailType &&
+        typeof body.detailType === "string" &&
         body.detailType.startsWith("CodePipeline")
       ) {
         return await this.createCodePipelineBot(rawMessage);
@@ -163,15 +190,42 @@ export class Meerkat {
   createCodePipelineBot = async (rawMessage: RawMessage) => {
     const codePipelineEvent = rawMessage.body as CodePipelineEvent;
 
-    const pipelog = new PipeLog(DB_TABLE, this.codeprovider, this.dynamoDb);
-    const deployArn = CodePipelineBot.getDeployArnFromEnv(
+    const versionPattern = this.config?.artifactSource?.versionPattern;
+    const deployArn = resolveDeployArn(
+      codePipelineEvent.account,
       codePipelineEvent.detail.pipeline,
-      process.env
+      this.config,
+      process.env,
+      this.lambdaAccount,
     );
-    const codeDeployConfig = await CodeDeploy.createClientConfig(deployArn);
+
+    // Use the event's region so API calls target the correct region (e.g. us-east-2 for Jamaica)
+    const eventRegion = codePipelineEvent.region || undefined;
+
+    // Create CodePipeline client for fetching S3 source keys (uses same cross-account role as CodeDeploy)
+    let codePipeline: CodePipeline | null = null;
+    let codeDeployConfig = {};
+    let codeBuildConfig = {};
+    try {
+      if (deployArn) {
+        const codePipelineConfig = await CodePipeline.createClientConfig(deployArn, eventRegion);
+        codePipeline = new CodePipeline(new CodePipelineClient(codePipelineConfig));
+        codeDeployConfig = await CodeDeploy.createClientConfig(deployArn, eventRegion);
+        codeBuildConfig = await CodeBuild.createClientConfig(deployArn, eventRegion);
+      } else {
+        // No role assumption needed — use Lambda's own credentials
+        codePipeline = new CodePipeline(new CodePipelineClient({ region: eventRegion }));
+      }
+    } catch (error) {
+      console.error("Meerkat: Failed to assume cross-account role, proceeding without:", error);
+      // Fall back to Lambda's own credentials (may not work cross-account but won't crash)
+      codePipeline = new CodePipeline(new CodePipelineClient({ region: eventRegion }));
+    }
+
+    const pipelog = new PipeLog(DB_TABLE, this.codeprovider, this.dynamoDb, versionPattern, codePipeline);
 
     const codeDeploy = new CodeDeploy(new CodeDeployClient(codeDeployConfig));
-    const codeBuild = new CodeBuild(new CodeBuildClient({}));
+    const codeBuild = new CodeBuild(new CodeBuildClient(codeBuildConfig));
     const pipebot = new CodePipelineBot(pipelog, codeBuild, codeDeploy);
 
     return pipebot;
@@ -182,13 +236,19 @@ export class Meerkat {
    * @param service The service identifier. e.g. slack, discord etc.
    * @returns
    */
-  chatFactory = (service: string): Chat => {
+  chatFactory = async (service: string): Promise<Chat> => {
+    const accountNames = this.config?.accounts ?? {};
     switch (service) {
       case "slack":
-        return new SlackChat();
+        return new SlackChat(
+          this.config?.slack?.routes ?? [],
+          accountNames,
+          this.config?.slack?.defaultChannel ?? "",
+          this.config?.slack?.botToken ?? "",
+        );
       case "discord":
       default:
     }
-    return new DiscordChat();
+    return new DiscordChat(accountNames, this.config?.discord);
   };
 }

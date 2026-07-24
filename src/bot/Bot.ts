@@ -7,10 +7,9 @@ export class Bot {
    * @returns
    */
   handleMessage = async (
-    rawMessage: RawMessage
+    rawMessage: RawMessage,
   ): Promise<Notification | null> => {
     throw new Error("Implement method sendNotification.");
-    return null;
   };
 
   /**

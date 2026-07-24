@@ -21,7 +21,8 @@ export class Discord {
     failureDetail:
       | PipelineCodeBuildFailure
       | PipelineCodeDeployFailure
-      | undefined
+      | undefined,
+    sourceFailure?: string,
   ): DiscordMessageType {
     const message: DiscordMessageType = {
       title: `:see_no_evil: ${pipeLineName}`,
@@ -32,7 +33,13 @@ export class Discord {
 
     const author = commit.author.length === 0 ? "" : commit.author;
 
-    if (commit.id !== "") {
+    if (commit.id !== "" && !commit.link) {
+      // S3 artifact source — show version
+      message.fields.push({
+        name: `Version`,
+        value: commit.id,
+      });
+    } else if (commit.id !== "") {
       message.fields.push(
         {
           name: `Commit: ${commit.id}`,
@@ -41,8 +48,13 @@ export class Discord {
         {
           name: `View Commit:`,
           value: `${commit.link}`,
-        }
+        },
       );
+    } else if (sourceFailure) {
+      message.fields.push({
+        name: `Source Failed`,
+        value: sourceFailure,
+      });
     }
 
     const type = failureDetail ? failureDetail.type : "";
@@ -76,12 +88,12 @@ export class Discord {
 
           if (codeDeployFailure.id !== "") {
             for (const info of codeDeployFailure.targets) {
-              if (!info || !info.diagnostics) continue;
+              if (!info?.diagnostics) continue;
               const logTail =
                 "```bash\n " +
                 info.diagnostics?.logTail.slice(
-                  info.diagnostics.logTail.length - 500,
-                  info.diagnostics.logTail.length
+                  -500,
+                  info.diagnostics.logTail.length,
                 ) +
                 " ```";
               message.fields.push({
@@ -94,8 +106,13 @@ export class Discord {
         break;
 
       default:
-        message.title = `:hot_face: ${author} broke the build.`;
-        message.description = "Pipeline Failed.";
+        if (sourceFailure) {
+          message.title = `:see_no_evil: ${pipeLineName}`;
+          message.description = "Pipeline Failed.";
+        } else {
+          message.title = `:hot_face: ${author} broke the build.`;
+          message.description = "Pipeline Failed.";
+        }
     }
 
     return message;
@@ -103,7 +120,7 @@ export class Discord {
 
   public createPipeSuccessMessage(
     pipeLineName: string,
-    commit: Commit
+    commit: Commit,
   ): DiscordMessageType {
     const author = commit.author.length === 0 ? "" : commit.author;
 
@@ -114,7 +131,13 @@ export class Discord {
       footer: "",
     };
 
-    if (commit.id !== "") {
+    if (commit.id !== "" && !commit.link) {
+      // S3 artifact source — show version
+      message.fields.push({
+        name: `Version`,
+        value: commit.id,
+      });
+    } else if (commit.id !== "") {
       message.fields.push(
         {
           name: `Commit: ${commit.id}`,
@@ -123,7 +146,7 @@ export class Discord {
         {
           name: `View Commit:`,
           value: `${commit.link}`,
-        }
+        },
       );
     }
 
@@ -132,7 +155,7 @@ export class Discord {
 
   public createManualApprovalMessage(
     pipeLineName: string,
-    manualAttributes: ManualApprovalAttributes
+    manualAttributes: ManualApprovalAttributes,
   ): DiscordMessageType {
     const message: DiscordMessageType = {
       title: `:sneeze: ${pipeLineName} requires manual approval.`,
@@ -166,7 +189,8 @@ export class Discord {
     };
   }
 
-  public alarmMessage(alarm: AlarmNotification): DiscordMessageType {
+  public alarmMessage(alarm: AlarmNotification, accountLabel?: string): DiscordMessageType {
+    const suffix = accountLabel ? ` [${accountLabel}]` : "";
     const message: DiscordMessageType = {
       title: "",
       description: alarm.alert.description,
@@ -175,8 +199,8 @@ export class Discord {
     };
 
     switch (alarm.alert.type) {
-      case "alarm":
-        message.title = `:face_with_symbols_over_mouth:  ${alarm.alert.name} is in alarm.`;
+      case "alarm": {
+        message.title = `:face_with_symbols_over_mouth:  ${alarm.alert.name} is in alarm.${suffix}`;
 
         const detail = "```bash\n " + alarm.alert.reason + " ```";
 
@@ -185,15 +209,16 @@ export class Discord {
           value: detail,
         });
         break;
+      }
       case "nag":
-        message.title = `:skull_crossbones: ${alarm.alert.name} is still broken.`;
+        message.title = `:skull_crossbones: ${alarm.alert.name} is still broken.${suffix}`;
         message.description = "";
         break;
       case "recovered":
-        message.title = `::partying_face: ${alarm.alert.name} recovered.`;
+        message.title = `::partying_face: ${alarm.alert.name} recovered.${suffix}`;
         break;
       case "healthy":
-        message.title = `:call_me:  ${alarm.alert.name} is healthy.`;
+        message.title = `:call_me:  ${alarm.alert.name} is healthy.${suffix}`;
         message.description = "";
         break;
     }
@@ -214,7 +239,7 @@ export class Discord {
     path: string,
     avatar: string,
     username: string,
-    color: number = 3447003 /* Blue */
+    color: number = 3447003 /* Blue */,
   ): Promise<any> => {
     /*
     https://discord.com/developers/docs/resources/webhook#execute-webhook
@@ -237,17 +262,12 @@ export class Discord {
       ],
     });
 
-    const options = {
-      hostname: "discord.com",
-      port: 443,
-      path: path,
+    return Util.callEndpoint(`https://discord.com${path}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Content-Length": content.length,
       },
-    };
-
-    return Util.callEndpoint(options, content);
+      body: content,
+    });
   };
 }

@@ -15,7 +15,8 @@ describe("Slack", () => {
 
   beforeEach(() => {
     mockFetch.mockClear();
-    slack = new Slack();
+    jest.spyOn(console, "log").mockImplementation(() => {});
+    slack = new Slack("xoxb-test-token");
 
     // Mock environment variables
     process.env = {
@@ -92,19 +93,17 @@ describe("Slack", () => {
       expect(userId).toBe("U1234567890");
     });
 
-    it("should return null without SLACK_BOT_TOKEN configured", async () => {
-      // Reset environment without SLACK_BOT_TOKEN
-      process.env = {
-        ...originalEnv,
-        SLACK_WEBHOOK: "https://hooks.slack.com/test",
-      };
-      delete process.env.SLACK_BOT_TOKEN;
+    it("should return null without bot token configured", async () => {
+      const slackNoToken = new Slack("");
 
-      const userId = await slack.findSlackUserId("john.doe@example.com", "John Doe");
+      const userId = await slackNoToken.findSlackUserId("john.doe@example.com", "John Doe");
 
       // Should not call user lookup APIs
       expect(mockFetch).not.toHaveBeenCalled();
       expect(userId).toBeNull();
+      expect(console.log).toHaveBeenCalledWith(
+        "No Slack bot token provided, skipping user lookup",
+      );
     });
   });
 
@@ -170,6 +169,64 @@ describe("Slack", () => {
     });
 
     describe("Pipeline Success Messages", () => {
+    describe("Source Failure Messages", () => {
+      const emptyCommit: Commit = {
+        id: "",
+        author: "",
+        summary: "",
+        link: "",
+      };
+
+      it("should show source failure reason instead of 'Commit details unavailable'", () => {
+        const sourceFailure = "The object with key '__no_release_change__/override-required' does not exist.";
+
+        const message = slack.createPipeFailureMessage(
+          "my-service [stg]",
+          emptyCommit,
+          undefined,
+          null,
+          sourceFailure,
+        );
+
+        const commitBlock = message.blocks.find(
+          (b: any) => b.type === "section" && b.text?.text?.startsWith(">"),
+        ) as any;
+        expect(commitBlock.text.text).toContain("Source failed:");
+        expect(commitBlock.text.text).toContain("__no_release_change__/override-required");
+        expect(commitBlock.text.text).not.toContain("Commit details unavailable");
+      });
+
+      it("should not show 'broke the build' when source failure is present", () => {
+        const sourceFailure = "The object with key 'some-key' does not exist.";
+
+        const message = slack.createPipeFailureMessage(
+          "my-service [stg]",
+          emptyCommit,
+          undefined,
+          null,
+          sourceFailure,
+        );
+
+        const blocks = message.blocks.map((b: any) => b.text?.text || "").join(" ");
+        expect(blocks).not.toContain("broke the build");
+        expect(blocks).toContain("Pipeline Failed.");
+      });
+
+      it("should still show 'Commit details unavailable' when no source failure info", () => {
+        const message = slack.createPipeFailureMessage(
+          "some-pipeline",
+          emptyCommit,
+          undefined,
+          null,
+        );
+
+        const commitBlock = message.blocks.find(
+          (b: any) => b.type === "section" && b.text?.text?.startsWith(">"),
+        ) as any;
+        expect(commitBlock.text.text).toContain("Commit details unavailable");
+      });
+    });
+
       it("should create a pipeline success message", async () => {
         const commit: Commit = {
           id: "123456",
@@ -198,6 +255,43 @@ describe("Slack", () => {
           await slack.postMessageToChannel(message, SLACK_CHANNEL);
         }
         expect(message).toBeDefined();
+        const sectionBlock = message.blocks.find((b: any) => b.type === "section") as any;
+        expect(sectionBlock.text.text).toContain("<http://www.github.com|View Approval>");
+      });
+
+      it("should omit link when approval link is empty", () => {
+        const approvalAttributes: ManualApprovalAttributes = {
+          link: "",
+          comment: "Please review the build artifacts and approve deployment",
+        };
+
+        const message = slack.createManualApprovalMessage("unit-test", approvalAttributes);
+        expect(message).toBeDefined();
+        const sectionBlock = message.blocks.find((b: any) => b.type === "section") as any;
+        expect(sectionBlock.text.text).toBe("Please review the build artifacts and approve deployment");
+        expect(sectionBlock.text.text).not.toContain("View Approval");
+      });
+
+      it("should mention the user when slackUserId is provided", () => {
+        const approvalAttributes: ManualApprovalAttributes = {
+          link: "http://www.github.com",
+          comment: "Please approve this deployment",
+        };
+
+        const message = slack.createManualApprovalMessage("unit-test", approvalAttributes, "U12345ABC");
+        const sectionBlock = message.blocks.find((b: any) => b.type === "section") as any;
+        expect(sectionBlock.text.text).toBe("<@U12345ABC>\nPlease approve this deployment\n<http://www.github.com|View Approval>");
+      });
+
+      it("should not mention when slackUserId is null", () => {
+        const approvalAttributes: ManualApprovalAttributes = {
+          link: "",
+          comment: "Please approve this deployment",
+        };
+
+        const message = slack.createManualApprovalMessage("unit-test", approvalAttributes, null);
+        const sectionBlock = message.blocks.find((b: any) => b.type === "section") as any;
+        expect(sectionBlock.text.text).not.toContain("<@");
       });
     });
   });

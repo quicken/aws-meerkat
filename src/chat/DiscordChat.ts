@@ -8,12 +8,26 @@ import {
 import { Discord, DiscordMessageType } from "../lib/Discord";
 import { Chat } from "./Chat";
 
-const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || "";
-const DISCORD_AVATAR = process.env.DISCORD_AVATAR || "";
-const DISCORD_USERNAME = process.env.DISCORD_USERNAME || "AWS Notification";
+export interface DiscordConfig {
+  webhook: string;
+  avatar?: string;
+  username?: string;
+}
 
 export class DiscordChat extends Chat {
-  private discord = new Discord();
+  private readonly discord = new Discord();
+  private readonly accountNames: Record<string, string>;
+  private readonly webhook: string;
+  private readonly avatar: string;
+  private readonly username: string;
+
+  constructor(accountNames: Record<string, string> = {}, config: DiscordConfig = { webhook: "" }) {
+    super();
+    this.accountNames = accountNames;
+    this.webhook = config.webhook;
+    this.avatar = config.avatar ?? "";
+    this.username = config.username ?? "AWS Notification";
+  }
 
   /** Formats and then sends a notification to Discord. */
   sendNotification = async (notification: Notification) => {
@@ -29,7 +43,7 @@ export class DiscordChat extends Chat {
         const simpleNotification = notification as SimpleNotification;
         discordMessage = this.discord.simpleMessage(
           simpleNotification.subject,
-          simpleNotification.message
+          simpleNotification.message,
         );
         break;
       }
@@ -40,36 +54,49 @@ export class DiscordChat extends Chat {
         color = ["alarm", "nag"].includes(alarmNotification.alert.type)
           ? DARK_RED
           : GREEN;
-        discordMessage = this.discord.alarmMessage(alarmNotification);
+        discordMessage = this.discord.alarmMessage(
+          alarmNotification,
+          this.accountNames[alarmNotification.account],
+        );
         break;
       }
 
       case "PipelineNotification": {
         const pipelineNotification = notification as PipelineNotification;
+        const name = this.withAccountLabel(
+          pipelineNotification.name,
+          pipelineNotification.account,
+        );
         if (pipelineNotification.successfull) {
           color = GREEN;
           discordMessage = this.discord.createPipeSuccessMessage(
-            pipelineNotification.name,
-            pipelineNotification.commit
+            name,
+            pipelineNotification.commit,
           );
         } else {
           color = DARK_RED;
           discordMessage = this.discord.createPipeFailureMessage(
-            pipelineNotification.name,
+            name,
             pipelineNotification.commit,
-            pipelineNotification.failureDetail
+            pipelineNotification.failureDetail,
+            pipelineNotification.sourceFailure,
           );
         }
 
         break;
       }
-      
+
       case "ManualApprovalNotification": {
-        const manualApprovalNotification = notification as ManualApprovalNotification;
-          color = YELLOW;
-          discordMessage = this.discord.createManualApprovalMessage(
-            manualApprovalNotification.name,
-            manualApprovalNotification.approvalAttributes
+        const manualApprovalNotification =
+          notification as ManualApprovalNotification;
+        color = YELLOW;
+        const approvalName = this.withAccountLabel(
+          `Code Pipeline: ${manualApprovalNotification.name}`,
+          manualApprovalNotification.account,
+        );
+        discordMessage = this.discord.createManualApprovalMessage(
+          approvalName,
+          manualApprovalNotification.approvalAttributes,
         );
         break;
       }
@@ -79,11 +106,16 @@ export class DiscordChat extends Chat {
     if (discordMessage) {
       await this.discord.postMessage(
         discordMessage,
-        DISCORD_WEBHOOK,
-        DISCORD_AVATAR,
-        DISCORD_USERNAME,
-        color
+        this.webhook,
+        this.avatar,
+        this.username,
+        color,
       );
     }
   };
+
+  private withAccountLabel(title: string, accountId: string): string {
+    const name = this.accountNames[accountId];
+    return name ? `${title} [${name}]` : title;
+  }
 }

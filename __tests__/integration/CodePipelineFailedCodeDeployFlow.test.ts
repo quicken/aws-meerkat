@@ -48,14 +48,12 @@ jest.mock("../../src/lib/BitBucket", () => {
     BitBucket: jest.fn().mockImplementation(() => {
       return {
         fetchCommit: (repo: string, commitId: string): Promise<Commit> => {
-          return new Promise((resolve, reject) => {
-            resolve({
-              id: "f7ec85262da48e2b15d03037b138963c5a89d39f",
-              author: "Marcel Scherzet <mscherzer@gmail.com>",
-              summary:
-                "DEV-666 - Custom verification link for NLE\n\nRequires a matching lambda function\n",
-              link: "https://api.bitbucket.org/2.0/repositories/yourcompany/yourproject/commit/3fcdaa5ac3e29c79008319ede6c092643f204af0",
-            });
+          return Promise.resolve({
+            id: "f7ec85262da48e2b15d03037b138963c5a89d39f",
+            author: "Marcel Scherzet <mscherzer@gmail.com>",
+            summary:
+              "DEV-666 - Custom verification link for NLE\n\nRequires a matching lambda function\n",
+            link: "https://api.bitbucket.org/2.0/repositories/yourcompany/yourproject/commit/3fcdaa5ac3e29c79008319ede6c092643f204af0",
           });
         },
       };
@@ -63,13 +61,23 @@ jest.mock("../../src/lib/BitBucket", () => {
   };
 });
 
+jest.mock("../../src/lib/MeerkatConfig", () => ({
+  loadConfig: jest.fn().mockResolvedValue({
+    bitbucket: { email: "test@test.com", token: "test-token" },
+    slack: { routes: [] },
+  }),
+  resolveDeployArn: jest.fn().mockReturnValue(""),
+}));
+
 const bitBucket = new BitBucket("", "");
 
 beforeAll(() => {
+  process.env.GIT_PROVIDER = "bitbucket";
+  jest.spyOn(console, "info").mockImplementation(() => {});
   if (!INTEGRATION_TESTS) {
     console.info(
       "\x1b[33m%s\x1b[0m",
-      "INTEGRATION_TESTS are disabled. Skipping all integration tests."
+      "INTEGRATION_TESTS are disabled. Skipping all integration tests.",
     );
   }
 });
@@ -88,6 +96,15 @@ beforeEach(async () => {
   await DYNAMO_DB.send(deleteItemCommand);
 });
 
+test("should log when integration tests are disabled", () => {
+  if (!INTEGRATION_TESTS) {
+    expect(console.info).toHaveBeenCalledWith(
+      expect.any(String),
+      "INTEGRATION_TESTS are disabled. Skipping all integration tests.",
+    );
+  }
+});
+
 test("integration_pipeline-fail-code-deploy", async () => {
   if (!INTEGRATION_TESTS) return;
   codeBuildMock.on(BatchGetBuildsCommand).resolves(SAMPLE_BATCH_BUILDS);
@@ -96,11 +113,11 @@ test("integration_pipeline-fail-code-deploy", async () => {
     .on(BatchGetDeploymentTargetsCommand)
     .resolves(AWS_BATCH_TARGETS);
 
-  const meerkat = new Meerkat(DYNAMO_DB, bitBucket, "discord");
+  const meerkat = new Meerkat(DYNAMO_DB, "discord");
 
   const events = getCodePipelineFailedCodeDeployFlow();
   let previousNotification: Notification | null = null;
-  for await (const event of events) {
+  for (const event of events) {
     const rawMessage: RawMessage = {
       isJson: true,
       subject: "",

@@ -100,7 +100,7 @@ export const ITEM_SUCCESSFULL_PIPE_LOG = {
     L: [],
   },
   name: {
-    S: "axcelerate-testing",
+    S: "my-project-testing",
   },
   commit: {
     M: {

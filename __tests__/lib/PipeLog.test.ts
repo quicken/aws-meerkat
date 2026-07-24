@@ -12,6 +12,13 @@ import {
   PIPELINE_SOURCE_ACTION_GITHUB,
 } from "../sample/pipeline/SourceEvent";
 
+import {
+  PIPELINE_S3_SOURCE_VERSIONED,
+  PIPELINE_S3_SOURCE_LATEST,
+  PIPELINE_S3_SOURCE_FAILED,
+  PIPELINE_S3_SOURCE_NO_ARTIFACTS,
+} from "../sample/pipeline/S3SourceEvent";
+
 import { ITEM_FAILED_DEPLOYMENT_PIPE_LOG } from "../sample/aws/dynamoDb";
 
 const dynamoDbMock = mockClient(DynamoDBClient) as any;
@@ -182,4 +189,311 @@ test("loading", async () => {
   expect(pipelog.isFailed).toBe(true);
   expect(pipelog.failed?.name).toBe("Deploy-RED");
   expect(pipelog.failed?.type).toBe("deploy");
+});
+
+// --- S3 Source Action Tests ---
+
+test("handleS3ActionEvent_versioned_extracts_semver", async () => {
+  const gitHub = new GitHub("", "");
+  const pipelog = new PipeLog(DB_TABLE, gitHub, dynamoDbMock);
+  await pipelog.handlePipelineAction(PIPELINE_S3_SOURCE_VERSIONED);
+
+  expect(pipelog.commit.id).toBe("1.4.2");
+  expect(pipelog.commit.author).toBe("");
+  expect(pipelog.commit.summary).toBe("my-deploy-pipeline/my-deploy-pipeline-1.4.2.zip");
+  expect(pipelog.commit.link).toBe("");
+});
+
+test("handleS3ActionEvent_latest_extracts_latest", async () => {
+  const gitHub = new GitHub("", "");
+  const pipelog = new PipeLog(DB_TABLE, gitHub, dynamoDbMock);
+  await pipelog.handlePipelineAction(PIPELINE_S3_SOURCE_LATEST);
+
+  expect(pipelog.commit.id).toBe("latest");
+  expect(pipelog.commit.author).toBe("");
+  expect(pipelog.commit.summary).toBe("my-deploy-pipeline/my-deploy-pipeline-latest.zip");
+  expect(pipelog.commit.link).toBe("");
+});
+
+test("handleS3ActionEvent_failed_records_failure", async () => {
+  const gitHub = new GitHub("", "");
+  const pipelog = new PipeLog(DB_TABLE, gitHub, dynamoDbMock);
+  await pipelog.handlePipelineAction(PIPELINE_S3_SOURCE_FAILED);
+
+  expect(pipelog.isFailed).toBe(true);
+  expect(pipelog.failed?.type).toBe("checkout");
+  expect(pipelog.failed?.name).toBe("S3Source");
+  expect(pipelog.failed?.message).toBe(
+    "The specified S3 object key does not exist: my-deploy-pipeline/my-deploy-pipeline-9.9.9.zip"
+  );
+});
+
+test("handleS3ActionEvent_no_output_artifacts_falls_back_to_execution_id", async () => {
+  const gitHub = new GitHub("", "");
+  const pipelog = new PipeLog(DB_TABLE, gitHub, dynamoDbMock);
+  await pipelog.handlePipelineAction(PIPELINE_S3_SOURCE_NO_ARTIFACTS);
+
+  expect(pipelog.commit.id).toBe("2.0.1");
+  expect(pipelog.commit.author).toBe("");
+  expect(pipelog.commit.summary).toBe("my-api-pipeline/my-api-pipeline-2.0.1.zip");
+  expect(pipelog.commit.link).toBe("");
+});
+
+test("handleS3ActionEvent_custom_version_pattern", async () => {
+  const gitHub = new GitHub("", "");
+  // Custom pattern: extract version from "v{version}" prefix format
+  const pipelog = new PipeLog(DB_TABLE, gitHub, dynamoDbMock, "v([\\d.]+)\\.zip$");
+  
+  // Create a custom event with different key format
+  const customEvent = {
+    ...PIPELINE_S3_SOURCE_VERSIONED,
+    detail: {
+      ...PIPELINE_S3_SOURCE_VERSIONED.detail,
+      "output-artifacts": [
+        {
+          name: "SourceArtifact",
+          s3location: {
+            bucket: "my-bucket",
+            key: "releases/app-v3.2.1.zip",
+          },
+        },
+      ],
+    },
+  };
+
+  await pipelog.handlePipelineAction(customEvent);
+
+  expect(pipelog.commit.id).toBe("3.2.1");
+  expect(pipelog.commit.summary).toBe("releases/app-v3.2.1.zip");
+});
+
+test("handleS3ActionEvent_no_pattern_match_returns_full_key", async () => {
+  const gitHub = new GitHub("", "");
+  // Use a pattern that won't match the key
+  const pipelog = new PipeLog(DB_TABLE, gitHub, dynamoDbMock, "NOMATCH(\\d+)");
+  
+  const customEvent = {
+    ...PIPELINE_S3_SOURCE_VERSIONED,
+    detail: {
+      ...PIPELINE_S3_SOURCE_VERSIONED.detail,
+      "output-artifacts": [
+        {
+          name: "SourceArtifact",
+          s3location: {
+            bucket: "my-bucket",
+            key: "some/unusual/path/artifact.tar.gz",
+          },
+        },
+      ],
+    },
+  };
+
+  await pipelog.handlePipelineAction(customEvent);
+
+  // When pattern doesn't match, id falls back to the full key
+  expect(pipelog.commit.id).toBe("some/unusual/path/artifact.tar.gz");
+  expect(pipelog.commit.summary).toBe("");
+});
+
+test("handleS3ActionEvent_sets_pipeline_name", async () => {
+  const gitHub = new GitHub("", "");
+  const pipelog = new PipeLog(DB_TABLE, gitHub, dynamoDbMock);
+  await pipelog.handlePipelineAction(PIPELINE_S3_SOURCE_VERSIONED);
+
+  expect(pipelog.name).toBe("my-deploy-pipeline");
+});
+
+// --- S3 Source with ListActionExecutions API Tests ---
+
+import {
+  CodePipelineClient,
+  ListActionExecutionsCommand,
+} from "@aws-sdk/client-codepipeline";
+import { CodePipeline } from "../../src/lib/CodePipeline";
+
+const codePipelineMock = mockClient(CodePipelineClient) as any;
+
+test("handleS3ActionEvent_uses_api_when_codePipeline_provided", async () => {
+  codePipelineMock.reset();
+  codePipelineMock.on(ListActionExecutionsCommand).resolves({
+    actionExecutionDetails: [
+      {
+        stageName: "Source",
+        actionName: "S3Source",
+        input: {
+          actionTypeId: {
+            category: "Source",
+            owner: "AWS",
+            provider: "S3",
+            version: "1",
+          },
+          resolvedConfiguration: {
+            S3Bucket: "my-artifact-bucket",
+            S3ObjectKey: "my-deploy-pipeline/my-deploy-pipeline-1.4.2.zip",
+          },
+        },
+        output: {
+          outputVariables: {
+            ObjectKey: "my-deploy-pipeline/my-deploy-pipeline-1.4.2.zip",
+          },
+        },
+      },
+    ],
+  });
+
+  const gitHub = new GitHub("", "");
+  const codePipeline = new CodePipeline(codePipelineMock);
+  const pipelog = new PipeLog(DB_TABLE, gitHub, dynamoDbMock, undefined, codePipeline);
+
+  // Use an event with a CACHE path in output-artifacts (simulates real cross-account behaviour)
+  const crossAccountEvent = {
+    ...PIPELINE_S3_SOURCE_VERSIONED,
+    detail: {
+      ...PIPELINE_S3_SOURCE_VERSIONED.detail,
+      "output-artifacts": [
+        {
+          name: "SourceArtifact",
+          s3location: {
+            bucket: "deploy-cache.tst.example.com",
+            key: "my-deploy-pipeline/SourceArti/MjPeWp2.zip", // Cache path, NOT real key
+          },
+        },
+      ],
+    },
+  };
+
+  await pipelog.handlePipelineAction(crossAccountEvent);
+
+  // Should use the API result, not the event's cache path
+  expect(pipelog.commit.id).toBe("1.4.2");
+  expect(pipelog.commit.summary).toBe("my-deploy-pipeline/my-deploy-pipeline-1.4.2.zip");
+});
+
+test("handleS3ActionEvent_falls_back_to_event_when_api_fails", async () => {
+  const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+  codePipelineMock.reset();
+  codePipelineMock.on(ListActionExecutionsCommand).rejects(
+    new Error("Access Denied"),
+  );
+
+  const gitHub = new GitHub("", "");
+  const codePipeline = new CodePipeline(codePipelineMock);
+  const pipelog = new PipeLog(DB_TABLE, gitHub, dynamoDbMock, undefined, codePipeline);
+
+  await pipelog.handlePipelineAction(PIPELINE_S3_SOURCE_VERSIONED);
+
+  // Falls back to event payload data
+  expect(pipelog.commit.id).toBe("1.4.2");
+  expect(pipelog.commit.summary).toBe("my-deploy-pipeline/my-deploy-pipeline-1.4.2.zip");
+  expect(errorSpy).toHaveBeenCalledWith(
+    expect.stringContaining("Failed to fetch S3 source key via API"),
+    expect.any(Error),
+  );
+  errorSpy.mockRestore();
+});
+
+test("handleS3ActionEvent_falls_back_to_event_when_api_returns_empty", async () => {
+  codePipelineMock.reset();
+  codePipelineMock.on(ListActionExecutionsCommand).resolves({
+    actionExecutionDetails: [],
+  });
+
+  const gitHub = new GitHub("", "");
+  const codePipeline = new CodePipeline(codePipelineMock);
+  const pipelog = new PipeLog(DB_TABLE, gitHub, dynamoDbMock, undefined, codePipeline);
+
+  await pipelog.handlePipelineAction(PIPELINE_S3_SOURCE_LATEST);
+
+  // Falls back to event payload
+  expect(pipelog.commit.id).toBe("latest");
+  expect(pipelog.commit.summary).toBe("my-deploy-pipeline/my-deploy-pipeline-latest.zip");
+});
+
+test("handleS3ActionEvent_api_returns_overridden_key_for_versioned_deploy", async () => {
+  codePipelineMock.reset();
+  // Simulates stg/prd: pipeline's default key is "latest" but execution was overridden to a specific version
+  codePipelineMock.on(ListActionExecutionsCommand).resolves({
+    actionExecutionDetails: [
+      {
+        stageName: "Source",
+        actionName: "S3Source",
+        input: {
+          actionTypeId: {
+            category: "Source",
+            owner: "AWS",
+            provider: "S3",
+            version: "1",
+          },
+          configuration: {
+            S3ObjectKey: "my-deploy-pipeline/my-deploy-pipeline-latest.zip", // Default config
+          },
+          resolvedConfiguration: {
+            S3ObjectKey: "my-deploy-pipeline/my-deploy-pipeline-2.3.1.zip", // Override for this execution
+          },
+        },
+        output: {},
+      },
+    ],
+  });
+
+  const gitHub = new GitHub("", "");
+  const codePipeline = new CodePipeline(codePipelineMock);
+  const pipelog = new PipeLog(DB_TABLE, gitHub, dynamoDbMock, undefined, codePipeline);
+
+  // Event has cache path (doesn't matter — API will be used)
+  const event = {
+    ...PIPELINE_S3_SOURCE_LATEST,
+    detail: {
+      ...PIPELINE_S3_SOURCE_LATEST.detail,
+      "output-artifacts": [
+        {
+          name: "SourceArtifact",
+          s3location: {
+            bucket: "deploy-cache.stg.example.com",
+            key: "my-deploy-pipeline/SourceArti/XyZ123.zip",
+          },
+        },
+      ],
+    },
+  };
+
+  await pipelog.handlePipelineAction(event);
+
+  // Should show the overridden version, not "latest"
+  expect(pipelog.commit.id).toBe("2.3.1");
+  expect(pipelog.commit.summary).toBe("my-deploy-pipeline/my-deploy-pipeline-2.3.1.zip");
+});
+
+test("handleS3ActionEvent_rejects_cache_path_when_no_api", async () => {
+  const gitHub = new GitHub("", "");
+  // No CodePipeline client — will fall back to event payload
+  const pipelog = new PipeLog(DB_TABLE, gitHub, dynamoDbMock);
+
+  // Simulate the real cross-account event with cache path in output-artifacts
+  const cachePathEvent = {
+    ...PIPELINE_S3_SOURCE_LATEST,
+    detail: {
+      ...PIPELINE_S3_SOURCE_LATEST.detail,
+      "execution-result": {
+        "external-execution-url": "",
+        "external-execution-id": "1LTS101wrm35oyRVexDi3IvmLJS6Shr4", // S3 version ID
+        "external-execution-summary": "Amazon S3 version id: 1LTS101wrm35oyRVexDi3IvmLJS6Shr4",
+      },
+      "output-artifacts": [
+        {
+          name: "SourceArtifact",
+          s3location: {
+            bucket: "deploy-cache.tst.example.com",
+            key: "my-deploy-pipeline/SourceArti/Dcky8tB.zip", // Cache path
+          },
+        },
+      ],
+    },
+  };
+
+  await pipelog.handlePipelineAction(cachePathEvent);
+
+  // Should NOT show cache path — commit.id should be empty
+  expect(pipelog.commit.id).toBe("");
+  expect(pipelog.commit.summary).toBe("");
 });

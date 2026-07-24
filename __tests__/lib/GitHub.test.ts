@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { Util, SimpleHttpResponse } from "../../src/lib/Util";
+import { Util } from "../../src/lib/Util";
 import { GITHUB_GET_COMMIT_RESPONSE } from "./TestSamples";
 import { GitHub } from "../../src/lib/GitHub";
 
@@ -15,10 +15,8 @@ const GITHUB = {
 
 test("fetch-commit", async () => {
   /* Mock calling the github API. */
-  Util.callEndpoint = jest.fn().mockReturnValue(
-    new Promise<SimpleHttpResponse<any>>((resolve, reject) => {
-      resolve({ statuscode: 200, body: GITHUB_GET_COMMIT_RESPONSE });
-    })
+  jest.mocked(Util.callEndpoint).mockResolvedValue(
+    { statuscode: 200, body: GITHUB_GET_COMMIT_RESPONSE }
   );
 
   const github = new GitHub(GITHUB.username, GITHUB.token);
