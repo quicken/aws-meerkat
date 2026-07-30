@@ -22,16 +22,12 @@ export class CodeDeploy {
    * Returns the failure reason for the first failed life cycle event of each instance that
    * is a target for this deployment. If an instance has no failures the
    * diagnostics property will be null.
-   *
    * @param {*} deploymentId The id of the deployment.
-   * @param {*} codeDeploy From the AWS-SDK the codedeploy object used to make
-   * calls to the api. Note: The object should have been initialised with the credentials
-   * of a assumed role of the AWS account in which the code deployment has been provisioned.
    * @returns An array of instances to which code was deployed. If deployment fails for an instance the diagnostic
-   * property will contain the details from the very first life cycle event that failed on that instance.
+  property will contain the details from the very first life cycle event that failed on that instance.
    */
   deployDetails = async (
-    deploymentId: string
+    deploymentId: string,
   ): Promise<(InstanceDiagnosticType | undefined)[]> => {
     /* Find EC2 instances for this deployment*/
     const listDeploymentTargetsInput: ListDeploymentTargetsInput = {
@@ -39,10 +35,10 @@ export class CodeDeploy {
     };
 
     const listDeploymentTargetsCommand = new ListDeploymentTargetsCommand(
-      listDeploymentTargetsInput
+      listDeploymentTargetsInput,
     );
     const deploymentTargets = await this.codeDeploy.send(
-      listDeploymentTargetsCommand
+      listDeploymentTargetsCommand,
     );
 
     /* Retrieve the details of the first life cycle event that failed on each instance. */
@@ -85,9 +81,14 @@ export class CodeDeploy {
    * has permission to assume the role.
    *
    * @param rolearn Calls to code deploy are made using the arn. If this value is empty use the credentials of the lambda.
+   * @param region The AWS region where the deployment runs. If empty, uses SDK default (Lambda's region).
    */
-  static createClientConfig = async (rolearn?: string) => {
+  static readonly createClientConfig = async (rolearn?: string, region?: string) => {
     const config: CodeDeployClientConfig = {};
+
+    if (region) {
+      config.region = region;
+    }
 
     if (rolearn) {
       const stsClient = new STSClient({});

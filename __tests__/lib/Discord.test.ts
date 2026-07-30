@@ -120,6 +120,7 @@ test("create-deploy-failed-message", async () => {
 test("send-alarm", async () => {
   const alarmNotification: AlarmNotification = {
     type: "AlarmNotification",
+    account: "123456789012",
     alert: {
       type: "nag",
       name: "my-system-lb",
@@ -141,4 +142,46 @@ test("send-alarm", async () => {
   );
 
   // expect(message.description).toBe("This is my Alarm");
+});
+
+test("create-source-failure-message-shows-reason", () => {
+  const emptyCommit: Commit = {
+    id: "",
+    author: "",
+    summary: "",
+    link: "",
+  };
+
+  const discord = new Discord();
+  const message = discord.createPipeFailureMessage(
+    "my-service [stg]",
+    emptyCommit,
+    undefined,
+    "The object with key '__no_release_change__/override-required' does not exist.",
+  );
+
+  expect(message.fields.length).toBe(1);
+  expect(message.fields[0].name).toBe("Source Failed");
+  expect(message.fields[0].value).toContain("__no_release_change__/override-required");
+});
+
+test("create-source-failure-message-no-blame-framing", () => {
+  const emptyCommit: Commit = {
+    id: "",
+    author: "",
+    summary: "",
+    link: "",
+  };
+
+  const discord = new Discord();
+  const message = discord.createPipeFailureMessage(
+    "my-service [stg]",
+    emptyCommit,
+    undefined,
+    "The object with key 'some-key' does not exist.",
+  );
+
+  expect(message.title).not.toContain("broke the build");
+  expect(message.title).toContain("my-service [stg]");
+  expect(message.description).toBe("Pipeline Failed.");
 });

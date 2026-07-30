@@ -1,6 +1,3 @@
-import { URL } from "node:url";
-import * as https from "https";
-
 import {
   STSClient,
   AssumeRoleCommand,
@@ -14,55 +11,34 @@ export type SimpleHttpResponse<T> = {
 
 export class Util {
   /**
-   * Calls a HTTPS endpoint without requring any special imports.
+   * Calls a HTTPS endpoint using fetch. Follows redirects automatically.
    *
-   * @param {*} options A https options object.
-   * @param {*} content The content to be passed in the request.
+   * @param url The full URL to call.
+   * @param options Fetch request options.
    * @returns A promise which returns the body and statuscode of the response.
    */
-  public static callEndpoint = <T>(
-    options: string | https.RequestOptions | URL,
-    content: string
+  public static readonly callEndpoint = async <T>(
+    url: string,
+    options: RequestInit = {},
   ): Promise<SimpleHttpResponse<T>> => {
-    return new Promise((resolve, reject) => {
-      let incoming = "";
-      const req = https.request(options, (res) => {
-        res.on("data", (chunk) => {
-          incoming += chunk;
-        });
-        res.on("end", () => {
-          const statusCode =
-            res.statusCode && res.statusCode >= 200 && res.statusCode < 300
-              ? 200
-              : res.statusCode || 500;
-          if ([200, 301, 302].includes(statusCode)) {
-            let body;
-            try {
-              body = JSON.parse(incoming);
-            } catch (e) {
-              body = incoming;
-            }
+    const response = await fetch(url, options);
 
-            resolve({
-              statuscode: statusCode,
-              body: body,
-            });
-          }
+    if (!response.ok) {
+      const body = await response.text();
+      const httpError = new Error(`HTTP error ${response.status}`);
+      (httpError as NodeJS.ErrnoException).code = String(response.status);
+      throw Object.assign(httpError, { statuscode: response.status, body });
+    }
 
-          reject({
-            statuscode: statusCode,
-            body: incoming,
-          });
-        });
-      });
+    const text = await response.text();
+    let body: T;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = text as unknown as T;
+    }
 
-      req.on("error", (error) => {
-        reject(error);
-      });
-
-      req.write(content);
-      req.end();
-    });
+    return { statuscode: response.status, body };
   };
 
   /**
@@ -81,9 +57,9 @@ export class Util {
    * @returns Credentials which can be passed to the credentials property when intialising
    * aws sdk objects.
    */
-  public static fetchCredentials = async (
+  public static readonly fetchCredentials = async (
     sts: STSClient,
-    roleArn: string
+    roleArn: string,
   ): Promise<any> => {
     const param: AssumeRoleCommandInput = {
       RoleArn: roleArn,
@@ -122,7 +98,10 @@ export class Util {
    * @param env The process.env object or a similar object.
    * @returns The ARN of the role that is assumed when calling the AWS Deploy SDK.
    */
-  public static getDeployArnFromEnv = (name: string, env: any): string => {
+  public static readonly getDeployArnFromEnv = (
+    name: string,
+    env: any,
+  ): string => {
     const defaultArn = env.DEPLOY_ARN ? env.DEPLOY_ARN : "";
     for (const key in env) {
       if (key.startsWith("DEPLOY_ARN")) {

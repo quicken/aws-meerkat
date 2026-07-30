@@ -1,4 +1,6 @@
 #!/bin/bash
+NAME=$(node -p "require('./package.json').name")
+VERSION=$(node -p "require('./package.json').version")
 cd ./build
-zip code-pipeline-monitor.zip index.js
-echo "Package size: $(du -h code-pipeline-monitor.zip | cut -f1)"
+zip "${NAME}-${VERSION}.zip" index.js
+echo "Package: ${NAME}-${VERSION}.zip ($(du -h "${NAME}-${VERSION}.zip" | cut -f1))"

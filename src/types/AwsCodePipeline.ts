@@ -8,7 +8,7 @@ export type CodePipelineEvent = {
   detail: {
     pipeline: string;
     "execution-id": string;
-    version: 16.0;
+    version: 16;
   };
   account: string;
   region: string;
@@ -101,7 +101,7 @@ export type CodePipelineActionEvent = CodePipelineEvent & {
     "input-artifacts"?: CodePipeLineArtifact[];
     "output-artifacts"?: CodePipeLineArtifact[];
     state: "STARTED" | "SUCCEEDED" | "FAILED";
-    action: "Source" | "Build" | string;
+    action: "Source" | "Build" | (string & {});
     stage: string;
     region: string;
     type: CodePipelineActionType;

@@ -8,9 +8,9 @@ export class SimpleBot extends Bot {
    * @returns
    */
   handleMessage = async (
-    rawMessage: RawMessage
+    rawMessage: RawMessage,
   ): Promise<SimpleNotification | null> => {
-    if (rawMessage.body + "" !== rawMessage.body) return null;
+    if (typeof rawMessage.body !== "string") return null;
     return {
       type: "SimpleNotification",
       subject: rawMessage.subject,

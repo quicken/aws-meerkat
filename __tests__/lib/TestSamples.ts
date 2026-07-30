@@ -232,14 +232,14 @@ export const AWS_CODE_DEPLOY_INFO = {
 };
 
 export const AWS_MANUAL_APPROVAL_REQUEST_INFO = {
-  account: "483376129420",
+  account: "444455556666",
   detailType: "CodePipeline Action Execution State Change",
   region: "ap-southeast-2",
   source: "aws.codepipeline",
   time: "2022-04-13T00:02:16Z",
-  notificationRuleArn: "arn:aws:codestar-notifications:ap-southeast-2:483376129420:notificationrule/06486c59533a1ace24d910539fc74bd351ff13e4",
+  notificationRuleArn: "arn:aws:codestar-notifications:ap-southeast-2:444455556666:notificationrule/06486c59533a1ace24d910539fc74bd351ff13e4",
   detail: {
-    pipeline: "lena-test-pipeline",
+    pipeline: "sample-test-pipeline",
     'execution-id': "31c2dcbd-2a1d-42b0-9f37-5bf8cb693b28",
     stage: "ManualApproval",
     action: "Approval",
@@ -254,7 +254,7 @@ export const AWS_MANUAL_APPROVAL_REQUEST_INFO = {
     version: 2
   },
   resources: [
-    "arn:aws:codepipeline:ap-southeast-2:483376129420:lena-test-pipeline"
+    "arn:aws:codepipeline:ap-southeast-2:444455556666:sample-test-pipeline"
   ],
   additionalAttributes: {
     externalEntityLink: "",
@@ -263,18 +263,18 @@ export const AWS_MANUAL_APPROVAL_REQUEST_INFO = {
 }
 
 export const AWS_MANUAL_REQUEST_APPROVED = {
-  account: "483376129420",
+  account: "444455556666",
   detailType: "CodePipeline Action Execution State Change",
   region: "ap-southeast-2",
   source: "aws.codepipeline",
   time: "2022-04-13T00:05:40Z",
-  notificationRuleArn: "arn:aws:codestar-notifications:ap-southeast-2:483376129420:notificationrule/06486c59533a1ace24d910539fc74bd351ff13e4",
+  notificationRuleArn: "arn:aws:codestar-notifications:ap-southeast-2:444455556666:notificationrule/06486c59533a1ace24d910539fc74bd351ff13e4",
   detail: {
-    pipeline: "lena-test-pipeline",
+    pipeline: "sample-test-pipeline",
     'execution-id': "31c2dcbd-2a1d-42b0-9f37-5bf8cb693b28",
     stage: "ManualApproval",
     'execution-result': {
-      'external-execution-summary': "Approved by arn:aws:sts::483376129420:assumed-role/ax-devops-developer-tier-1/lena",
+      'external-execution-summary': "Approved by arn:aws:sts::444455556666:assumed-role/devops-developer-role/jane",
       'external-execution-id': "7c24df87-e753-4d28-bb04-d48acd0e6cb3"
     },
     action: "Approval",
@@ -289,20 +289,20 @@ export const AWS_MANUAL_REQUEST_APPROVED = {
     version: 2
   },
   resources: [
-    "arn:aws:codepipeline:ap-southeast-2:483376129420:lena-test-pipeline"
+    "arn:aws:codepipeline:ap-southeast-2:444455556666:sample-test-pipeline"
   ],
   additionalAttributes: {}
 }
 
 export const AWS_MANUAL_REQUEST_REJECTED = {
-  account: "483376129420",
+  account: "444455556666",
   detailType: "CodePipeline Action Execution State Change",
   region: "ap-southeast-2",
   source: "aws.codepipeline",
   time: "2022-04-13T00:03:25Z",
-  notificationRuleArn: "arn:aws:codestar-notifications:ap-southeast-2:483376129420:notificationrule/06486c59533a1ace24d910539fc74bd351ff13e4",
+  notificationRuleArn: "arn:aws:codestar-notifications:ap-southeast-2:444455556666:notificationrule/06486c59533a1ace24d910539fc74bd351ff13e4",
   detail: {
-    'pipeline': "lena-test-pipeline",
+    'pipeline': "sample-test-pipeline",
     'execution-id': "31c2dcbd-2a1d-42b0-9f37-5bf8cb693b28",
     stage: "ManualApproval",
     'execution-result': {
@@ -322,7 +322,7 @@ export const AWS_MANUAL_REQUEST_REJECTED = {
     version: 2
   },
   resources: [
-    "arn:aws:codepipeline:ap-southeast-2:483376129420:lena-test-pipeline"
+    "arn:aws:codepipeline:ap-southeast-2:444455556666:sample-test-pipeline"
   ],
   additionalAttributes: {}
 }

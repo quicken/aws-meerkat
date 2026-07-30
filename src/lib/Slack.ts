@@ -1,4 +1,11 @@
-import { Commit, PipelineCodeBuildFailure, PipelineCodeDeployFailure, ManualApprovalAttributes } from "../types/common";
+import {
+  Commit,
+  PipelineCodeBuildFailure,
+  PipelineCodeDeployFailure,
+  ManualApprovalAttributes,
+} from "../types/common";
+
+const SLACK_API = "https://slack.com/api";
 
 interface SlackBlockType {
   type: string;
@@ -42,14 +49,24 @@ export interface SlackMessageType {
 }
 
 export class Slack {
+  private readonly botToken: string;
+
   divider: SlackBlockType = {
     type: "divider",
   };
 
+  constructor(botToken: string) {
+    this.botToken = botToken;
+  }
+
   /**
    * Wrapper for fetch with timeout to prevent hanging requests
    */
-  private async fetchWithTimeout(url: string, options: any, timeoutMs: number = 10000): Promise<Response> {
+  private async fetchWithTimeout(
+    url: string,
+    options: any,
+    timeoutMs: number = 10000,
+  ): Promise<Response> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -72,8 +89,12 @@ export class Slack {
   public createPipeFailureMessage(
     pipeLineName: string,
     commit: Commit,
-    failureDetail: PipelineCodeBuildFailure | PipelineCodeDeployFailure | undefined,
-    slackUserId: string | null
+    failureDetail:
+      | PipelineCodeBuildFailure
+      | PipelineCodeDeployFailure
+      | undefined,
+    slackUserId: string | null,
+    sourceFailure?: string,
   ): SlackMessageType {
     let author = this.mention(slackUserId);
     author = author.length === 0 ? commit.author : author;
@@ -96,7 +117,15 @@ export class Slack {
       type: "section",
       text: {
         type: "mrkdwn",
-        text: `>*${author}*\n>Commit: *<${commit.link}|${commit.id}>*\n>${commit.summary}`,
+        text: commit.link
+          ? `>*${author}*\n>Commit: *<${commit.link}|${commit.id}>*\n>${commit.summary}`
+          : commit.id && !commit.link
+            ? author
+              ? `>*${author}*\n>Version: *${commit.id}*`
+              : `>Version: *${commit.id}*`
+            : sourceFailure
+              ? `>Source failed: ${sourceFailure}`
+              : `>Commit details unavailable (action events not yet processed).`,
       },
     };
     message.blocks.push(commitSection);
@@ -140,8 +169,14 @@ export class Slack {
 
           if (codeDeployFailure.id !== "") {
             for (const info of codeDeployFailure.targets) {
-              if (!info || !info.diagnostics) continue;
-              const logTail = "```" + info.diagnostics?.logTail.slice(info.diagnostics.logTail.length - 500, info.diagnostics.logTail.length) + "```";
+              if (!info?.diagnostics) continue;
+              const logTail =
+                "```" +
+                info.diagnostics?.logTail.slice(
+                  -500,
+                  info.diagnostics.logTail.length,
+                ) +
+                "```";
 
               const targetInfo: SlackBlockType = {
                 type: "section",
@@ -160,7 +195,9 @@ export class Slack {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `*:hot_face: ${author} broke the build.*\n*Pipeline Failed.*`,
+            text: sourceFailure
+              ? `*Pipeline Failed.*`
+              : `*:hot_face: ${author} broke the build.*\n*Pipeline Failed.*`,
           },
         };
         message.blocks.push(defaultSection);
@@ -172,7 +209,11 @@ export class Slack {
     return message;
   }
 
-  public createPipeSuccessMessage(pipeLineName: string, commit: Commit, slackUserId: string | null): SlackMessageType {
+  public createPipeSuccessMessage(
+    pipeLineName: string,
+    commit: Commit,
+    slackUserId: string | null,
+  ): SlackMessageType {
     let author = this.mention(slackUserId);
     author = author.length === 0 ? commit.author : author;
 
@@ -194,16 +235,25 @@ export class Slack {
       type: "section",
       text: {
         type: "mrkdwn",
-        text: `>*${author}*\n>Commit: *<${commit.link}|${commit.id}>*\n>${commit.summary}`,
+        text: commit.link
+          ? `>*${author}*\n>Commit: *<${commit.link}|${commit.id}>*\n>${commit.summary}`
+          : commit.id && !commit.link
+            ? author
+              ? `>*${author}*\n>Version: *${commit.id}*`
+              : `>Version: *${commit.id}*`
+            : `>Commit details unavailable.`,
       },
     };
-    message.blocks.push(commitSection);
-    message.blocks.push(this.divider);
+    message.blocks.push(commitSection, this.divider);
 
     return message;
   }
 
-  public createManualApprovalMessage(pipeLineName: string, manualAttributes: ManualApprovalAttributes): SlackMessageType {
+  public createManualApprovalMessage(
+    pipeLineName: string,
+    manualAttributes: ManualApprovalAttributes,
+    slackUserId?: string | null,
+  ): SlackMessageType {
     const message: SlackMessageType = {
       text: `:bulb: Received a AWS Notification`,
       blocks: [
@@ -218,15 +268,20 @@ export class Slack {
       ],
     };
 
+    const mentionLine = slackUserId ? `<@${slackUserId}>\n` : "";
+    const linkLine = manualAttributes.link
+      ? `\n<${manualAttributes.link}|View Approval>`
+      : "";
+    const approvalText = `${mentionLine}${manualAttributes.comment}${linkLine}`;
+
     const approvalSection: SlackBlockType = {
       type: "section",
       text: {
         type: "mrkdwn",
-        text: `${manualAttributes.comment}\n<${manualAttributes.link}|View Approval>`,
+        text: approvalText,
       },
     };
-    message.blocks.push(approvalSection);
-    message.blocks.push(this.divider);
+    message.blocks.push(approvalSection, this.divider);
     return message;
   }
 
@@ -260,18 +315,21 @@ export class Slack {
    * @param channel The channel ID or name to post to
    * @returns Promise resolving to API response
    */
-  postMessageToChannel = async (message: SlackMessageType | null, channel: string): Promise<any> => {
+  postMessageToChannel = async (
+    message: SlackMessageType | null,
+    channel: string,
+  ): Promise<any> => {
     if (!message) return null;
 
-    const slackBotToken = process.env.SLACK_BOT_TOKEN;
-    if (!slackBotToken) {
-      throw new Error("SLACK_BOT_TOKEN is required for posting to channels");
+    if (!this.botToken) {
+      throw new Error("Slack bot token is required for posting to channels");
     }
 
-    const response = await fetch("https://slack.com/api/chat.postMessage", {
+    console.debug("Slack: Posting to channel:", channel);
+    const response = await fetch(`${SLACK_API}/chat.postMessage`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${slackBotToken}`,
+        Authorization: `Bearer ${this.botToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -281,9 +339,17 @@ export class Slack {
       }),
     });
 
-    await response.json();
+    const body = await response.json() as { ok: boolean; error?: string };
+    console.debug("Slack: API response:", JSON.stringify(body));
+
     if (!response.ok) {
-      throw new Error(`Slack API error: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Slack API error: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    if (!body.ok) {
+      console.error("Slack: API returned error:", body.error);
     }
   };
 
@@ -293,23 +359,21 @@ export class Slack {
    * @returns The user ID if found, null otherwise
    */
   private async findUserByEmail(email: string): Promise<string | null> {
-    const slackBotToken = process.env.SLACK_BOT_TOKEN || "";
-
-    if (!slackBotToken) {
-      console.log("No SLACK_BOT_TOKEN provided, skipping user lookup");
+    if (!this.botToken) {
+      console.log("No Slack bot token provided, skipping user lookup");
       return null;
     }
 
     try {
       const response = await this.fetchWithTimeout(
-        `https://slack.com/api/users.lookupByEmail?email=${encodeURIComponent(email)}`,
+        `${SLACK_API}/users.lookupByEmail?email=${encodeURIComponent(email)}`,
         {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${slackBotToken}`,
+            Authorization: `Bearer ${this.botToken}`,
           },
         },
-        5000
+        5000,
       ); // 5 second timeout
 
       const data = (await response.json()) as SlackUserLookupResponse;
@@ -331,28 +395,31 @@ export class Slack {
    * @returns The user ID if found, null otherwise
    */
   private async findUserByName(name: string): Promise<string | null> {
-    const slackBotToken = process.env.SLACK_BOT_TOKEN || "";
-
-    if (!slackBotToken) {
-      console.log("No SLACK_BOT_TOKEN provided, skipping user lookup");
+    if (!this.botToken) {
+      console.log("No Slack bot token provided, skipping user lookup");
       return null;
     }
 
     try {
       const response = await this.fetchWithTimeout(
-        "https://slack.com/api/users.list",
+        `${SLACK_API}/users.list`,
         {
           headers: {
-            Authorization: `Bearer ${slackBotToken}`,
+            Authorization: `Bearer ${this.botToken}`,
           },
         },
-        5000
+        5000,
       ); // 5 second timeout
 
       const data = (await response.json()) as SlackUsersListResponse;
 
       if (data.ok && data.members) {
-        const user = data.members.find((member: SlackUser) => member.real_name === name || member.display_name === name || member.name === name);
+        const user = data.members.find(
+          (member: SlackUser) =>
+            member.real_name === name ||
+            member.display_name === name ||
+            member.name === name,
+        );
 
         if (user?.id) {
           return user.id;
@@ -384,7 +451,7 @@ export class Slack {
     // Fallback to name lookup if email lookup failed
     if (!userId && authorName) {
       // Extract just the name part if it's in "Name <email>" format
-      const nameMatch = authorName.match(/^([^<]+)/);
+      const nameMatch = new RegExp(/^([^<]+)/).exec(authorName);
       const cleanName = nameMatch ? nameMatch[1].trim() : authorName;
       userId = await this.findUserByName(cleanName);
     }

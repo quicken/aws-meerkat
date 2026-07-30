@@ -30,14 +30,6 @@ Parameters:
     Description: "The service hosting the repository."
     Default: github
 
-  EnvGitUsername:
-    Type: String
-    Description: "The username that is used to connect to the git provider."
-
-  EnvGitPassword:
-    Type: String
-    Description: "The password that is used to connect to the git provider. For GitHub this is a Personal Access Token with permission to read commits."
-
   EnvChatService:
     Type: String
     AllowedValues:
@@ -46,65 +38,57 @@ Parameters:
     Description: "The chat service used to deliver notifications."
     Default: discord
 
-  EnvDiscordAvatar:
-    Type: String
-    Description: "A public URL to an image that will be used as the discord avatar. (128px X 128px)"
-    Default: ""
-
-  EnvDiscordUsername:
-    Type: String
-    Description: "Override the displayed username when posting to Discord."
-    Default: ""
-
-  EnvDiscordWebhook:
-    Type: String
-    Description: "The discord webhook to which notifications are posted."
-    Default: ""
-
-  EnvSlackBotToken:
-    Type: String
-    Description: "The Slack Bot Token (xoxb-) required for sending messages and user mentions."
-    Default: ""
-
-  EnvSlackChannel:
-    Type: String
-    Description: "The Slack channel name or ID where notifications should be sent."
-    Default: ""
-
   EnvDeployArn:
     Type: String
     Description: "The role ARN assumed when retrieving CodeDeploy failure information across AWS accounts. Optional."
     Default: ""
 
-  EnvTraceEvents:
+  ApplicationLogLevel:
     Type: String
     AllowedValues:
-      - "true"
-      - "false"
-    Description: "Enable tracing of SNS events for debugging."
-    Default: "false"
+      - DEBUG
+      - INFO
+      - WARN
+      - ERROR
+    Description: "Log level for application logs (console.debug, console.log, etc)."
+    Default: INFO
+
+  SystemLogLevel:
+    Type: String
+    AllowedValues:
+      - DEBUG
+      - INFO
+      - WARN
+    Description: "Log level for Lambda runtime logs (INIT_START, REPORT, etc)."
+    Default: INFO
 
   CostCenter:
     Type: String
     Description: "The value applied to the costcenter tag."
     Default: meerkatbot
 
+  AllowedSourceAccounts:
+    Type: CommaDelimitedList
+    Description: "Comma-separated list of AWS account IDs allowed to publish cross-account notifications to Meerkat's SNS topic."
+    Default: ""
+
 Resources:
-  SlackRoutesParameter:
+  MeerkatConfigParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /meerkat/slack/routes
+      Name: /meerkat/config
       Type: String
-      Value: '{
-        "slack": {
-          "routes": [
-          {
-            "expression": "type:PipelineNotification&name~^meerkat.*-prd$",
-            "channel": "#meerkat"
-          }]
+      Value: |
+        {
+          "accounts": {},
+          "slack": {
+            "routes": [{
+              "expression": "type:PipelineNotification&name~^meerkat.*-prd$",
+              "channel": "#meerkat"
+            }]
+          }
         }
-      }'
-      Description: Initial Slack routing configuration for Meerkat bot
+      Description: Meerkat configuration (accounts, routing rules)
       Tags:
         costcenter: !Ref CostCenter
 
@@ -169,13 +153,30 @@ Resources:
           - Sid: CrossAccountCloudWatchAlarms
             Effect: Allow
             Principal:
-              AWS: "*"
+              Service: cloudwatch.amazonaws.com
             Action: "SNS:Publish"
             Resource: !Ref SnsTopic
             Condition:
-              ArnLike:
-                aws:SourceArn:
-                  - !Sub "arn:aws:clouwatch:${AWS::Region}:${AWS::AccountId}:alarm:*"
+              StringEquals:
+                AWS:SourceAccount: !Ref AllowedSourceAccounts
+          - Sid: CrossAccountCodeStarNotifications
+            Effect: Allow
+            Principal:
+              Service: codestar-notifications.amazonaws.com
+            Action: "SNS:Publish"
+            Resource: !Ref SnsTopic
+            Condition:
+              StringEquals:
+                AWS:SourceAccount: !Ref AllowedSourceAccounts
+          - Sid: CrossAccountSNSForward
+            Effect: Allow
+            Principal:
+              Service: sns.amazonaws.com
+            Action: "SNS:Publish"
+            Resource: !Ref SnsTopic
+            Condition:
+              StringEquals:
+                AWS:SourceAccount: !Ref AllowedSourceAccounts
       Topics:
         - !Ref SnsTopic
 
@@ -218,12 +219,11 @@ Resources:
             Resource: !GetAtt DBTable.Arn
 
           - Sid: SSMParameters
-            # Permission to read/write SSM parameters for Slack routing configuration
+            # Permission to read SSM parameters for Meerkat configuration (SecureString)
             Action:
               - ssm:GetParameter
-              - ssm:PutParameter
             Effect: Allow
-            Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/meerkat/slack/routes"
+            Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/meerkat/config"
 
           - Sid: CodeBuild
             # Permission to retrieve aditional information from builds.
@@ -239,6 +239,14 @@ Resources:
             Action:
               - codedeploy:BatchGetDeploymentTargets
               - codedeploy:ListDeploymentTargets
+            Resource:
+              - "*"
+
+          - Sid: CodePipeline
+            # Permission to retrieve S3 source object key from pipeline action executions.
+            Effect: Allow
+            Action:
+              - codepipeline:ListActionExecutions
             Resource:
               - "*"
           - Sid: FetchCodeFromS3
@@ -260,20 +268,17 @@ Resources:
         Variables:
           CHAT_SERVICE: !Ref EnvChatService
           GIT_PROVIDER: !Ref EnvGitProvider
-          GIT_USERNAME: !Ref EnvGitUsername
-          GIT_PASSWORD: !Ref EnvGitPassword
           DB_TABLE: !Ref DBTable
-          DISCORD_AVATAR: !Ref EnvDiscordAvatar
-          DISCORD_USERNAME: !Ref EnvDiscordUsername
-          DISCORD_WEBHOOK: !Ref EnvDiscordWebhook
-          SLACK_BOT_TOKEN: !Ref EnvSlackBotToken
-          SLACK_CHANNEL: !Ref EnvSlackChannel
           DEPLOY_ARN: !Ref EnvDeployArn
-          TRACE_EVENTS: !Ref EnvTraceEvents
+          MEERKAT_CONFIG_PARAM: /meerkat/config
       PackageType: Zip
       Role: !GetAtt LambdaServiceRole.Arn
-      Runtime: nodejs20.x
+      Runtime: nodejs22.x
       Timeout: 15
+      LoggingConfig:
+        LogFormat: JSON
+        ApplicationLogLevel: !Ref ApplicationLogLevel
+        SystemLogLevel: !Ref SystemLogLevel
       Code:
         S3Bucket: !Ref CodeBucketName
         S3Key: !Ref CodeKey

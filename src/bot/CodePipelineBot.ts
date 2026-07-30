@@ -26,6 +26,8 @@ export class CodePipelineBot extends Bot {
   pipeLog: PipeLog;
   codeBuild: CodeBuild;
   codeDeploy: CodeDeploy;
+  private account: string = "";
+  private pipelineName: string = "";
 
   constructor(pipeLog: PipeLog, codeBuild: CodeBuild, codeDeploy: CodeDeploy) {
     super();
@@ -41,8 +43,8 @@ export class CodePipelineBot extends Bot {
    * @param event An object to which detection should be applied.
    * @returns The detected event type.
    */
-  static detectEventType = (
-    event: Record<string, unknown>
+  static readonly detectEventType = (
+    event: Record<string, unknown>,
   ): CodePipelineEventType => {
     let type: CodePipelineEventType = "";
     if (event.detailType) {
@@ -63,23 +65,25 @@ export class CodePipelineBot extends Bot {
   };
 
   handleMessage = async (
-    rawMessage: RawMessage
+    rawMessage: RawMessage,
   ): Promise<PipelineNotification | ManualApprovalNotification | null> => {
     const codePipelineEvent = rawMessage.body as CodePipelineEvent;
     const eventType = CodePipelineBot.detectEventType(codePipelineEvent);
+    this.account = codePipelineEvent.account;
+    this.pipelineName = codePipelineEvent.detail.pipeline;
 
     await this.pipeLog.load(codePipelineEvent.detail["execution-id"]);
 
     switch (eventType) {
       case "CodePipelineExecutionEvent":
         return this.handleExecutionEvent(
-          codePipelineEvent as CodePipelineExecutionEvent
+          codePipelineEvent as CodePipelineExecutionEvent,
         );
       case "CodePipelineStageEvent":
         break;
       case "CodePipelineActionEvent":
         return this.handleActionEvent(
-          codePipelineEvent as CodePipelineActionEvent
+          codePipelineEvent as CodePipelineActionEvent,
         );
     }
     return null;
@@ -111,14 +115,17 @@ export class CodePipelineBot extends Bot {
    * @param event
    * @returns
    */
-  private handleExecutionEvent = async (event: CodePipelineExecutionEvent) => {
+  private readonly handleExecutionEvent = async (
+    event: CodePipelineExecutionEvent,
+  ) => {
     switch (event.detail.state) {
       case "SUCCEEDED":
         return this.createSuccessNotification(this.pipeLog);
       case "FAILED": {
         if (
-          event.additionalAttributes.failedStage &&
-          event.additionalAttributes.failedStage.toLowerCase().includes("build")
+          event.additionalAttributes.failedStage
+            ?.toLowerCase()
+            .includes("build")
         ) {
           return null;
         } else {
@@ -135,7 +142,9 @@ export class CodePipelineBot extends Bot {
    * @param event
    * @returns
    */
-  private handleActionEvent = async (event: CodePipelineActionEvent) => {
+  private readonly handleActionEvent = async (
+    event: CodePipelineActionEvent,
+  ) => {
     await this.pipeLog.handlePipelineAction(event);
     if (
       event.detail.type.provider === "CodeBuild" &&
@@ -145,53 +154,65 @@ export class CodePipelineBot extends Bot {
     }
     if (
       event.detail.type.provider === "Manual" &&
-      event.detail.state === "STARTED") {
+      event.detail.state === "STARTED"
+    ) {
       return this.createManualApprovalNotification(this.pipeLog);
     }
     return null;
   };
 
   createManualApprovalNotification = async (
-    pipelog: PipeLog
+    pipelog: PipeLog,
   ): Promise<ManualApprovalNotification> => ({
     type: "ManualApprovalNotification",
     name: pipelog.name,
-    approvalAttributes: pipelog.approvalAttributes
+    account: this.account,
+    author: pipelog.commit.author || undefined,
+    authorEmail: pipelog.commit.authorEmail || undefined,
+    approvalAttributes: pipelog.approvalAttributes,
   });
 
   createSuccessNotification = async (
-    pipelog: PipeLog
+    pipelog: PipeLog,
   ): Promise<PipelineNotification> => ({
     type: "PipelineNotification",
-    name: pipelog.name,
+    account: this.account,
+    name: pipelog.name || this.pipelineName,
     commit: pipelog.commit,
     successfull: true,
   });
 
   createFailureNotification = async (
-    pipelog: PipeLog
+    pipelog: PipeLog,
   ): Promise<PipelineNotification> => {
     const notification: PipelineNotification = {
       type: "PipelineNotification",
-      name: pipelog.name,
+      account: this.account,
+      name: pipelog.name || this.pipelineName,
       commit: pipelog.commit,
       successfull: false,
     };
 
     if (pipelog.failed) {
       const logEntry = { ...pipelog.failed };
-      if (logEntry.type === "build") {
-        notification.failureDetail = await this.fetchCodeBuildInfo(logEntry.id);
-      } else if (logEntry.type === "deploy") {
-        notification.failureDetail = await this.fetchCodeDeployInfo(logEntry);
+      try {
+        if (logEntry.type === "build") {
+          notification.failureDetail = await this.fetchCodeBuildInfo(logEntry.id);
+        } else if (logEntry.type === "deploy") {
+          notification.failureDetail = await this.fetchCodeDeployInfo(logEntry);
+        } else if (logEntry.type === "checkout") {
+          notification.sourceFailure = logEntry.message || "Source stage failed";
+        }
+      } catch (error) {
+        console.error("CodePipelineBot: Failed to fetch failure details:", error);
       }
     }
 
     return notification;
   };
 
-  private fetchCodeBuildInfo = async (
-    buildId: string
+  private readonly fetchCodeBuildInfo = async (
+    buildId: string,
   ): Promise<PipelineCodeBuildFailure> => {
     return {
       type: "CodeBuild",
@@ -199,8 +220,8 @@ export class CodePipelineBot extends Bot {
     };
   };
 
-  private fetchCodeDeployInfo = async (
-    logEntry: LogEntry
+  private readonly fetchCodeDeployInfo = async (
+    logEntry: LogEntry,
   ): Promise<PipelineCodeDeployFailure> => {
     return {
       type: "CodeDeploy",
@@ -239,7 +260,7 @@ export class CodePipelineBot extends Bot {
    * @param env The process.env object or a similar object.
    * @returns The ARN of the role that is assumed when calling the AWS Deploy SDK.
    */
-  static getDeployArnFromEnv = (name: string, env: any): string => {
+  static readonly getDeployArnFromEnv = (name: string, env: any): string => {
     const defaultArn = env.DEPLOY_ARN ? env.DEPLOY_ARN : "";
     for (const key in env) {
       if (key.startsWith("DEPLOY_ARN")) {

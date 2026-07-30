@@ -88,6 +88,7 @@ export type SimpleNotification = {
  */
 export type AlarmNotification = Notification & {
   type: "AlarmNotification";
+  account: string;
   alert: {
     /** The type of alert that is being raised. */
     type: "alarm" | "nag" | "recovered" | "healthy";
@@ -110,6 +111,8 @@ export type AlarmNotification = Notification & {
  */
 export type PipelineNotification = Notification & {
   type: "PipelineNotification";
+  /** The source AWS account ID */
+  account: string;
   /**  The name of the pipeline that triggered the notification. */
   name: string;
   /** The commit information that relates to this pipeline execution. */
@@ -118,6 +121,8 @@ export type PipelineNotification = Notification & {
   successfull: boolean;
   /** Contains information related to the cause of the pipeline failure */
   failureDetail?: PipelineCodeBuildFailure | PipelineCodeDeployFailure;
+  /** When the Source stage itself fails, contains the failure reason (e.g. S3 object not found). */
+  sourceFailure?: string;
 };
 
 /**
@@ -127,6 +132,12 @@ export type PipelineNotification = Notification & {
   type: "ManualApprovalNotification";
   /**  The name of the pipeline that triggered the notification. */
   name: string;
+  /** The AWS account ID where the pipeline runs. */
+  account: string;
+  /** The author of the commit awaiting approval. */
+  author?: string;
+  /** The author's email address (used for Slack user lookup/mention). */
+  authorEmail?: string;
   /**  Optional information to be reviewed by approvers. */
   approvalAttributes: ManualApprovalAttributes;
  }

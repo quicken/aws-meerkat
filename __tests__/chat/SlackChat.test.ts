@@ -5,13 +5,13 @@ import {
   AlarmNotification,
   ManualApprovalNotification,
   PipelineCodeBuildFailure,
-  Commit
+  Commit,
 } from "../../src/types/common";
 import { Slack } from "../../src/lib/Slack";
 import { SlackRoute } from "../../src/lib/SlackRoute";
 
 // Mock fetch globally
-global.fetch = jest.fn();
+globalThis.fetch = jest.fn();
 
 // Mock the Slack class and SlackRoute class
 jest.mock("../../src/lib/Slack");
@@ -32,7 +32,10 @@ describe("SlackChat", () => {
   const mockLoadRoute = jest.fn();
   const originalEnv = process.env;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    jest.spyOn(console, "debug").mockImplementation(() => {});
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    jest.spyOn(console, "log").mockImplementation(() => {});
     mockFetch.mockClear();
     mockPostMessage.mockClear();
     mockCreatePipeFailureMessage.mockClear();
@@ -47,14 +50,29 @@ describe("SlackChat", () => {
     mockSlack.mockImplementation(
       () =>
         ({
-          createPipeFailureMessage: mockCreatePipeFailureMessage.mockReturnValue({ text: "test", blocks: [] }),
-          createPipeSuccessMessage: mockCreatePipeSuccessMessage.mockReturnValue({ text: "test", blocks: [] }),
-          createManualApprovalMessage: mockCreateManualApprovalMessage.mockReturnValue({ text: "test", blocks: [] }),
-          simpleMessage: mockSimpleMessage.mockReturnValue({ text: "test", blocks: [] }),
+          createPipeFailureMessage:
+            mockCreatePipeFailureMessage.mockReturnValue({
+              text: "test",
+              blocks: [],
+            }),
+          createPipeSuccessMessage:
+            mockCreatePipeSuccessMessage.mockReturnValue({
+              text: "test",
+              blocks: [],
+            }),
+          createManualApprovalMessage:
+            mockCreateManualApprovalMessage.mockReturnValue({
+              text: "test",
+              blocks: [],
+            }),
+          simpleMessage: mockSimpleMessage.mockReturnValue({
+            text: "test",
+            blocks: [],
+          }),
           postMessageToChannel: mockPostMessage.mockResolvedValue({}),
           findSlackUserId: mockFindSlackUserId.mockResolvedValue("U1234567890"),
           divider: { type: "divider" },
-        } as any)
+        }) as any,
     );
 
     // Mock SlackRoute instance methods
@@ -63,7 +81,7 @@ describe("SlackChat", () => {
         ({
           load: mockLoadRoute.mockResolvedValue(undefined),
           evaluateRoute: mockEvaluateRoute.mockReturnValue(null),
-        } as any)
+        }) as any,
     );
 
     // Mock environment variables
@@ -71,14 +89,15 @@ describe("SlackChat", () => {
       ...originalEnv,
       SLACK_WEBHOOK: "https://hooks.slack.com/test",
       SLACK_BOT_TOKEN: "xoxb-test-token",
-      SLACK_CHANNEL: "test-channel"
+      SLACK_CHANNEL: "test-channel",
     };
 
     // Create SlackChat instance after setting env vars
-    slackChat = new SlackChat();
+    slackChat = new SlackChat([], {}, "test-channel");
   });
 
   afterEach(() => {
+    jest.restoreAllMocks();
     process.env = originalEnv;
   });
 
@@ -87,15 +106,24 @@ describe("SlackChat", () => {
       const notification: SimpleNotification = {
         type: "SimpleNotification",
         subject: "Test Subject",
-        message: "Test Message"
+        message: "Test Message",
       };
 
       await slackChat.sendNotification(notification);
 
-      expect(mockSimpleMessage).toHaveBeenCalledWith("Test Subject", "Test Message");
+      expect(console.debug).toHaveBeenCalledWith(
+        "SlackChat: Resolved channel:",
+        "test-channel",
+        "for notification type:",
+        "SimpleNotification",
+      );
+      expect(mockSimpleMessage).toHaveBeenCalledWith(
+        "Test Subject",
+        "Test Message",
+      );
       expect(mockPostMessage).toHaveBeenCalledWith(
         { text: "test", blocks: [] },
-        "test-channel"
+        "test-channel",
       );
     });
   });
@@ -104,21 +132,31 @@ describe("SlackChat", () => {
     it("should send an alarm notification", async () => {
       const notification: AlarmNotification = {
         type: "AlarmNotification",
+        account: "123456789012",
         alert: {
           type: "alarm",
           name: "TestAlarm",
           description: "High CPU Usage Alert",
           reason: "High CPU Usage",
-          date: Date.now()
-        }
+          date: Date.now(),
+        },
       };
 
       await slackChat.sendNotification(notification);
 
-      expect(mockSimpleMessage).toHaveBeenCalledWith("Cloudwatch Alarm:TestAlarm", "High CPU Usage");
+      expect(console.debug).toHaveBeenCalledWith(
+        "SlackChat: Resolved channel:",
+        "test-channel",
+        "for notification type:",
+        "AlarmNotification",
+      );
+      expect(mockSimpleMessage).toHaveBeenCalledWith(
+        "Cloudwatch Alarm: TestAlarm",
+        "High CPU Usage",
+      );
       expect(mockPostMessage).toHaveBeenCalledWith(
         { text: "test", blocks: [] },
-        "test-channel"
+        "test-channel",
       );
     });
   });
@@ -129,57 +167,84 @@ describe("SlackChat", () => {
       author: "John Doe",
       authorEmail: "john.doe@example.com",
       summary: "Test commit",
-      link: "http://github.com/test"
+      link: "http://github.com/test",
     };
 
     it("should send a successful pipeline notification", async () => {
       const notification: PipelineNotification = {
         type: "PipelineNotification",
+        account: "123456789012",
         name: "TestPipeline",
         successfull: true,
-        commit: baseCommit
+        commit: baseCommit,
       };
 
       await slackChat.sendNotification(notification);
 
-      expect(mockFindSlackUserId).toHaveBeenCalledWith("john.doe@example.com", "John Doe");
+      expect(console.debug).toHaveBeenCalledWith(
+        "SlackChat: Resolved channel:",
+        "test-channel",
+        "for notification type:",
+        "PipelineNotification",
+      );
+      expect(console.log).toHaveBeenCalledWith(
+        "SlackChat: Processing pipeline notification",
+      );
+      expect(mockFindSlackUserId).toHaveBeenCalledWith(
+        "john.doe@example.com",
+        "John Doe",
+      );
       expect(mockCreatePipeSuccessMessage).toHaveBeenCalledWith(
-        "Code Pipeline:TestPipeline",
+        "Code Pipeline: TestPipeline",
         baseCommit,
-        "U1234567890"
+        "U1234567890",
       );
       expect(mockPostMessage).toHaveBeenCalledWith(
         { text: "test", blocks: [] },
-        "test-channel"
+        "test-channel",
       );
     });
 
     it("should send a failed pipeline notification", async () => {
       const failureDetail: PipelineCodeBuildFailure = {
         type: "CodeBuild",
-        logUrl: "http://example.com/logs"
+        logUrl: "http://example.com/logs",
       };
 
       const notification: PipelineNotification = {
         type: "PipelineNotification",
+        account: "123456789012",
         name: "TestPipeline",
         successfull: false,
         commit: baseCommit,
-        failureDetail
+        failureDetail,
       };
 
       await slackChat.sendNotification(notification);
 
-      expect(mockFindSlackUserId).toHaveBeenCalledWith("john.doe@example.com", "John Doe");
+      expect(console.debug).toHaveBeenCalledWith(
+        "SlackChat: Resolved channel:",
+        "test-channel",
+        "for notification type:",
+        "PipelineNotification",
+      );
+      expect(console.log).toHaveBeenCalledWith(
+        "SlackChat: Processing pipeline notification",
+      );
+      expect(mockFindSlackUserId).toHaveBeenCalledWith(
+        "john.doe@example.com",
+        "John Doe",
+      );
       expect(mockCreatePipeFailureMessage).toHaveBeenCalledWith(
-        "Code Pipeline:TestPipeline",
+        "Code Pipeline: TestPipeline",
         baseCommit,
         failureDetail,
-        "U1234567890"
+        "U1234567890",
+        undefined,
       );
       expect(mockPostMessage).toHaveBeenCalledWith(
         { text: "test", blocks: [] },
-        "test-channel"
+        "test-channel",
       );
     });
   });
@@ -189,46 +254,57 @@ describe("SlackChat", () => {
       const notification: ManualApprovalNotification = {
         type: "ManualApprovalNotification",
         name: "TestApproval",
+        account: "123456789012",
         approvalAttributes: {
           link: "http://example.com/approve",
-          comment: "Please approve this deployment"
-        }
+          comment: "Please approve this deployment",
+        },
       };
 
       await slackChat.sendNotification(notification);
 
+      expect(console.debug).toHaveBeenCalledWith(
+        "SlackChat: Resolved channel:",
+        "test-channel",
+        "for notification type:",
+        "ManualApprovalNotification",
+      );
       expect(mockCreateManualApprovalMessage).toHaveBeenCalledWith(
-        "TestApproval",
-        notification.approvalAttributes
+        "Code Pipeline: TestApproval",
+        notification.approvalAttributes,
+        null,
       );
       expect(mockPostMessage).toHaveBeenCalledWith(
         { text: "test", blocks: [] },
-        "test-channel"
+        "test-channel",
       );
     });
   });
 
   describe("Message Routing", () => {
-    it("should load routes on initialization", () => {
-      expect(mockLoadRoute).toHaveBeenCalled();
-    });
-
     it("should use routed channel when available", async () => {
       mockEvaluateRoute.mockReturnValue("#routed-channel");
 
       const notification: SimpleNotification = {
         type: "SimpleNotification",
         subject: "Test Subject",
-        message: "Test Message"
+        message: "Test Message",
       };
 
       await slackChat.sendNotification(notification);
 
+      expect(console.debug).toHaveBeenCalledWith(
+        "SlackChat: Resolved channel:",
+        "#routed-channel",
+        "for notification type:",
+        "SimpleNotification",
+      );
       expect(mockEvaluateRoute).toHaveBeenCalledWith(notification);
       expect(mockPostMessage).toHaveBeenCalledWith(
         expect.anything(),
-        "#routed-channel"
+        "#routed-channel",
       );
+      expect(console.error).not.toHaveBeenCalled();
     });
 
     it("should fallback to default channel when no route matches", async () => {
@@ -237,15 +313,21 @@ describe("SlackChat", () => {
       const notification: SimpleNotification = {
         type: "SimpleNotification",
         subject: "Test Subject",
-        message: "Test Message"
+        message: "Test Message",
       };
 
       await slackChat.sendNotification(notification);
 
+      expect(console.debug).toHaveBeenCalledWith(
+        "SlackChat: Resolved channel:",
+        "test-channel",
+        "for notification type:",
+        "SimpleNotification",
+      );
       expect(mockEvaluateRoute).toHaveBeenCalledWith(notification);
       expect(mockPostMessage).toHaveBeenCalledWith(
         expect.anything(),
-        "test-channel"
+        "test-channel",
       );
     });
 
@@ -257,16 +339,21 @@ describe("SlackChat", () => {
       const notification: SimpleNotification = {
         type: "SimpleNotification",
         subject: "Test Subject",
-        message: "Test Message"
+        message: "Test Message",
       };
 
       // The current implementation now handles routing errors gracefully
       // and continues with the default channel
       await slackChat.sendNotification(notification);
 
+      expect(console.debug).not.toHaveBeenCalled();
+      expect(console.error).toHaveBeenCalledWith(
+        expect.stringContaining("Error evaluating routes"),
+        expect.any(Error),
+      );
       expect(mockPostMessage).toHaveBeenCalledWith(
         expect.anything(),
-        "test-channel"
+        "test-channel",
       );
     });
   });

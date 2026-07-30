@@ -2,20 +2,19 @@ import { Util } from "./Util";
 import { Commit } from "../types/common";
 
 export class BitBucket {
-  /** Username for calling the Bitbucket API.  */
-  private _username: string;
+  /** Atlassian account email for calling the Bitbucket API. */
+  private readonly _email: string;
 
-  /** Password for calling the Bitbucket API.  */
-  private _password: string;
+  /** API token for calling the Bitbucket API (replaces deprecated app passwords). */
+  private readonly _token: string;
 
   /**
-   *
-   * @param username    Username for calling the Bitbucket API.
-   * @param password    Password for calling the Bitbucket API.
+   * @param email  Atlassian account email for Bitbucket API authentication.
+   * @param token  Bitbucket API token (Account Settings > Security > API tokens).
    */
-  constructor(username: string, password: string) {
-    this._username = username;
-    this._password = password;
+  constructor(email: string, token: string) {
+    this._email = email;
+    this._token = token;
   }
 
   /**
@@ -29,21 +28,19 @@ export class BitBucket {
    */
   fetchCommit = async (repo: string, commitId: string): Promise<Commit> => {
     const AUTHORIZATION = Buffer.from(
-      this._username + ":" + this._password
+      this._email + ":" + this._token,
     ).toString("base64");
 
-    const options = {
-      hostname: "api.bitbucket.org",
-      port: 443,
-      path: `/2.0/repositories/${repo}/commit/${commitId}`,
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Basic " + AUTHORIZATION,
+    const response = await Util.callEndpoint<any>(
+      `https://api.bitbucket.org/2.0/repositories/${repo}/commit/${commitId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Basic " + AUTHORIZATION,
+        },
       },
-    };
-
-    const response = await Util.callEndpoint<any>(options, "");
+    );
 
     const authorRaw = response.body.author.raw;
     // Extract email from raw author string (format: "Name <email@domain.com>")

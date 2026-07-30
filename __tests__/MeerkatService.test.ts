@@ -43,13 +43,22 @@ jest.mock("../src/lib/BitBucket", () => {
   };
 });
 
+jest.mock("../src/lib/MeerkatConfig", () => ({
+  loadConfig: jest.fn().mockResolvedValue({
+    bitbucket: { email: "test@test.com", token: "test-token" },
+    slack: { routes: [] },
+  }),
+  resolveDeployArn: jest.fn().mockReturnValue(""),
+}));
+
 beforeEach(() => {
   dynamoDbMock.reset();
+  process.env.GIT_PROVIDER = "bitbucket";
 });
 
 test("handle_simple_message", async () => {
   dynamoDbMock.on(GetItemCommand).resolves(ITEM_FAILED_DEPLOYMENT_PIPE_LOG);
-  const meerkat = new Meerkat(dynamoDbMock, bitbucket, CHAT_SERVICE);
+  const meerkat = new Meerkat(dynamoDbMock, CHAT_SERVICE);
   const rawMessage = {
     isJson: false,
     subject: "This is a test.",
@@ -68,7 +77,7 @@ test("handle_simple_message", async () => {
 
 test("handle_cloudwatch_alarm_message", async () => {
   dynamoDbMock.on(GetItemCommand).resolves(ITEM_FAILED_DEPLOYMENT_PIPE_LOG);
-  const meerkat = new Meerkat(dynamoDbMock, bitbucket, CHAT_SERVICE);
+  const meerkat = new Meerkat(dynamoDbMock, CHAT_SERVICE);
   const rawMessage = {
     isJson: true,
     subject: "",
@@ -92,7 +101,7 @@ test("handle_cloudwatch_alarm_message", async () => {
 
 test("handle_code_pipeline_message_success", async () => {
   dynamoDbMock.on(GetItemCommand).resolves(ITEM_SUCCESSFULL_PIPE_LOG);
-  const meerkat = new Meerkat(dynamoDbMock, bitbucket, CHAT_SERVICE);
+  const meerkat = new Meerkat(dynamoDbMock, CHAT_SERVICE);
   const rawMessage = {
     isJson: true,
     subject: "",
@@ -110,7 +119,7 @@ test("handle_code_pipeline_message_success", async () => {
 
 test("handle_code_pipeline_stage_build_action_build_started", async () => {
   dynamoDbMock.on(GetItemCommand).resolves(ITEM_SUCCESSFULL_PIPE_LOG);
-  const meerkat = new Meerkat(dynamoDbMock, bitbucket, CHAT_SERVICE);
+  const meerkat = new Meerkat(dynamoDbMock, CHAT_SERVICE);
   const rawMessage = {
     isJson: true,
     subject: "",

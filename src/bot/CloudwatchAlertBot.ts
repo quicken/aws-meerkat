@@ -9,12 +9,12 @@ export class CloudWatchAlertBot extends Bot {
    * @returns
    */
   handleMessage = async (
-    rawMessage: RawMessage
+    rawMessage: RawMessage,
   ): Promise<AlarmNotification | null> => {
     let type: "alarm" | "nag" | "recovered" | "healthy" = "alarm";
 
-    if (rawMessage.body + "" === rawMessage.body) return null;
-    const event = rawMessage.body as Record<string, unknown>;
+    if (typeof rawMessage.body === "string") return null;
+    const event = rawMessage.body;
 
     if (event.NewStateValue === event.OldStateValue) {
       if (event.NewStateValue === "OK") {
@@ -22,14 +22,16 @@ export class CloudWatchAlertBot extends Bot {
       } else {
         type = "nag";
       }
-    } else {
-      if (event.NewStateValue === "OK" && event.OldStateValue === "ALARM") {
-        type = "recovered";
-      }
+    } else if (
+      event.NewStateValue === "OK" &&
+      event.OldStateValue === "ALARM"
+    ) {
+      type = "recovered";
     }
 
     return {
       type: "AlarmNotification",
+      account: event.AWSAccountId as string,
       alert: {
         type: type,
         name: event.AlarmName as string,
